@@ -1,1 +1,1 @@
-export type InjuryComplete = 'C' | 'I' | 'C,I' | 'I*' | 'C,I*' | 'C*,I';
+export type InjuryComplete = 'C' | 'I' | 'C,I' | 'I*' | 'C*,I' | 'C*,I*';

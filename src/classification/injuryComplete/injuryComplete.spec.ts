@@ -72,7 +72,7 @@ const tests: Test[] = [
         ]
       }
     ],
-    expected: 'C,I*',
+    expected: 'C*,I*',
   }, {
     cases: [
       {
@@ -94,7 +94,7 @@ const tests: Test[] = [
           contains(test, 'some', ['1', '2', '1*', '0**', '1**', 'NT**']) &&
           !contains(test, 'only', ['0', '0**'])
         ),
-        anal: [
+        anal : [
           {dap:'Yes',vac:'Yes'},
           {dap:'Yes',vac:'No'},
           {dap:'Yes',vac:'NT'},
@@ -104,7 +104,7 @@ const tests: Test[] = [
           {dap:'NT',vac:'Yes'},
           {dap:'NT',vac:'No'},
           {dap:'NT',vac:'NT'},
-        ]
+        ],
       }, {
         sensory: allTests.filter(test =>
           contains(test, 'only', ['0', '0**']) && !contains(test, 'only', ['0'])

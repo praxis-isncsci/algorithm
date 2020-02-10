@@ -28,7 +28,7 @@ export const determineInjuryComplete = (exam: Exam): InjuryComplete => {
         exam.left.lightTouch.S4_5,
         exam.left.pinPrick.S4_5
       ].every(v => ['0','0*'].includes(v))){
-        return 'C,I*';
+        return 'C*,I*';
       }
     } else {
       if ([
