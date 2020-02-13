@@ -1,7 +1,7 @@
 import { ExamSide, SensoryPointValue, SensoryLevel, SensoryLevels } from '../../interfaces';
-import { isNormalSensory, CheckLevelResult } from '../common';
+import { CheckLevelResult } from '../common';
 
-const isAbnormalSensory = (value: SensoryPointValue): boolean => ['0','1','0*','1*','NT*'].includes(value);
+const isAbnormalSensory = (value: SensoryPointValue): boolean => ['0','1','0*','1*'].includes(value);
 const NTVariableSensory = (value: SensoryPointValue): boolean => ['0**','1**'].includes(value);
 const NTNotVariableSensory = (value: SensoryPointValue): boolean => ['2','NT','NT**'].includes(value);
 
@@ -14,6 +14,8 @@ export const checkSensoryLevel = (side: ExamSide, level: SensoryLevel, nextLevel
     return {continue: true, variable};
   } else if (isAbnormalSensory(side.lightTouch[nextLevel]) || isAbnormalSensory(side.pinPrick[nextLevel])) {
     return {continue: false, level: level + (variable ? '*' : ''), variable};
+  } else if ([side.lightTouch[nextLevel],side.pinPrick[nextLevel]].includes('NT*')) {
+    return {continue: false, level: level + '*', variable: true};
   } else if (side.lightTouch[nextLevel] === 'NT' || side.pinPrick[nextLevel] === 'NT') {
     if (NTVariableSensory(side.lightTouch[nextLevel]) || NTVariableSensory(side.pinPrick[nextLevel])) {
       return {continue: true, level: level + (variable ? '*' : ''), variable: true};
@@ -25,26 +27,6 @@ export const checkSensoryLevel = (side: ExamSide, level: SensoryLevel, nextLevel
   } else {
     return {continue: true, variable: true};
   }
-
-  // const nextLevelContainsNT = side.pinPrick[nextLevel] === 'NT' || side.lightTouch[nextLevel] === 'NT';
-  // const nextLevelContainsAbnormal = isAbnormalSensory(side.pinPrick[nextLevel]) || isAbnormalSensory(side.lightTouch[nextLevel]);
-  // if (nextLevelContainsNT && !nextLevelContainsAbnormal) {
-  //   return {continue: true, level: level + (variable ? '*' : '')};
-  // } else {
-  //   const nextLevelPinPrickConsideredAbnormal = variableSensory(side.pinPrick[nextLevel]);
-  //   const nextLevelLightTouchConsideredAbnormal = variableSensory(side.lightTouch[nextLevel]);
-
-  //   const bothConsideredAbnormal = nextLevelPinPrickConsideredAbnormal && nextLevelLightTouchConsideredAbnormal;
-  //   const oneNormalAndOneConsideredAbnormal = (nextLevelPinPrickConsideredAbnormal || nextLevelLightTouchConsideredAbnormal) &&
-  //     (nextLevelPinPrickIsNormal || nextLevelLightTouchIsNormal);
-  //   const oneNotTestableAndOneConsideredAbnormal = (nextLevelPinPrickConsideredAbnormal || nextLevelLightTouchConsideredAbnormal) &&
-  //     nextLevelContainsNT;
-  //   if (bothConsideredAbnormal || oneNormalAndOneConsideredAbnormal || oneNotTestableAndOneConsideredAbnormal) {
-  //     return {continue: false, level: level + '*'};
-  //   } else {
-  //     return {continue: false, level: level + (variable ? '*' : '')};
-  //   }
-  // }
 }
 
 /**

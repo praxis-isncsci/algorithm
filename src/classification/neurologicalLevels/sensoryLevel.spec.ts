@@ -28,9 +28,16 @@ const allTests: {x: SensoryPointValue; y: SensoryPointValue}[] = Array(100)
  */
 const tests: Test[] = [
   {
-    // 75 tests
-    cases: allTests.filter(test => contains(test, ['0', '1', '0*', '1*', 'NT*'])),
+    // 64 tests
+    cases: allTests.filter(test => contains(test, ['0', '1', '0*', '1*'])),
     expected: {continue: false, level: currentLevel, variable: false},
+  }, {
+    // 11 tests
+    cases: allTests.filter(test =>
+      contains(test, ['NT*']) &&
+      !contains(test, ['0', '1', '0*', '1*'])
+    ),
+    expected: {continue: false, level: currentLevel + '*', variable: true},
   }, {
     // 5 tests
     cases: allTests.filter(test => (
@@ -57,6 +64,8 @@ const tests: Test[] = [
     expected: {continue: true, variable: true},
   },
 ];
+
+console.log(...tests.map(t => t.cases.length))
 
 const allTestedValues: string[] = [];
 
@@ -100,7 +109,7 @@ describe('checkSensoryLevel', () => {
     for (const test of tests) {
       const expected = {
         continue: test.expected.continue,
-        level: test.expected.level ? test.expected.level + '*': undefined,
+        level: test.expected.level ? test.expected.level + (test.expected.level[2] === '*' ? '' : '*'): undefined,
         variable: true,
       }
       describe(JSON.stringify(expected), () => {

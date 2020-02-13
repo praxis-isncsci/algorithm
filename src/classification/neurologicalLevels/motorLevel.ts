@@ -74,13 +74,12 @@ export const checkWithSensoryCheckLevelResult = (side: ExamSide, level: 'T1' | '
   const result: CheckLevelResult = {continue:true, variable};
 
   if (
-    side.motor[level] !== 'NT' &&
     (['3','4','0*','1*','2*','3*','4*','NT*'].includes(side.motor[level]) || !sensoryCheckLevelResult.continue)
   ) {
     result.continue = false;
   }
 
-  if (!(['5','0**','1**','2**','3**','4**','NT**'].includes(side.motor[level]) && sensoryCheckLevelResult.continue && !sensoryCheckLevelResult.level)) {
+  if (side.motor[level] === 'NT' || !(['5','0**','1**','2**','3**','4**','NT**'].includes(side.motor[level]) && sensoryCheckLevelResult.continue && !sensoryCheckLevelResult.level)) {
     if (
       ['0*','1*','2*','NT*'].includes(side.motor[level]) ||
       (
@@ -98,7 +97,7 @@ export const checkWithSensoryCheckLevelResult = (side: ExamSide, level: 'T1' | '
     ['0*','1*','2*','NT*','0**','1**','2**'].includes(side.motor[level]) || (
       ['3**','4**','NT**'].includes(side.motor[level]) && sensoryCheckLevelResult.continue
     ) || (
-      side.motor[level] === '5' &&
+      ['5','NT'].includes(side.motor[level]) &&
       (sensoryCheckLevelResult.continue && sensoryCheckLevelResult.variable && !sensoryCheckLevelResult.level)
     )
   ) {

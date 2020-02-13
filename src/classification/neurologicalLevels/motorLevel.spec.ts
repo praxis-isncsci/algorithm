@@ -127,7 +127,7 @@ const afterMotorTests: AfterMotorTest[] = [
       {
         values: ['3','4','3*','4*']
       }, {
-        values: ['5','3**','4**','NT**'],
+        values: ['5','3**','4**','NT**','NT'],
         sensoryCheckLevelResults: [
           {continue: false, variable: false},
           {continue: false, variable: true},
@@ -157,9 +157,12 @@ const afterMotorTests: AfterMotorTest[] = [
     // 16 tests
     cases: [
       {
-        values: ['NT']
+        values: ['NT'],
+        sensoryCheckLevelResults: [
+          {continue: true, variable: false},
+        ],
       }, {
-        values: ['5'],
+        values: ['5','NT'],
         sensoryCheckLevelResults: [
           {continue: true, level: 'foo', variable: false},
           {continue: true, level: 'foo', variable: true},
@@ -170,6 +173,11 @@ const afterMotorTests: AfterMotorTest[] = [
   }, {
     cases: [
       {
+        values: ['NT'],
+        sensoryCheckLevelResults: [
+          {continue: true, variable: true},
+        ],
+      }, {
         values: ['3**','4**','NT**'],
         sensoryCheckLevelResults: [
           {continue: true, level: 'foo', variable: true},
