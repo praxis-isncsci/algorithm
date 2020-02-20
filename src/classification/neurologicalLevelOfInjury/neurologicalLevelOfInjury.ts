@@ -34,16 +34,16 @@ export const checkLevelWithMotor = (exam: Exam, level: SensoryLevel, sensoryResu
     const leftMotorResult = level === 'C4' || level === 'L1' ?
       checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
       level === 'T1' || level === 'S1' ?
-        checkMotorLevelAtEndOfKeyMuscles(exam.left, level, variable) :
+        checkMotorLevel(exam.left, motorLevel, motorLevel, variable) :
         checkMotorLevel(exam.left, motorLevel, nextMotorLevel, variable);
     const rightMotorResult = level === 'C4' || level === 'L1' ?
       checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
       level === 'T1' || level === 'S1' ?
-        checkMotorLevelAtEndOfKeyMuscles(exam.right, level, variable) :
+        checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hotfix
         checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
 
     let resultLevel;
-    if (leftMotorResult.level || rightMotorResult.level) {
+    if (leftMotorResult.level || rightMotorResult.level || sensoryResult.level) {
       if (
         leftMotorResult.level && rightMotorResult.level &&
         leftMotorResult.level.includes('*') && rightMotorResult.level.includes('*')
@@ -71,9 +71,8 @@ export const determineNeurologicalLevelOfInjury = (exam: Exam): string => {
     if (!nextLevel) {
       listOfNLI.push('INT');
     } else {
-      // TODO remove hard coded variable
-      const leftSensoryResult = checkSensoryLevel(exam.left, level, nextLevel, false);
-      const rightSensoryResult = checkSensoryLevel(exam.right, level, nextLevel, false);
+      const leftSensoryResult = checkSensoryLevel(exam.left, level, nextLevel, variable);
+      const rightSensoryResult = checkSensoryLevel(exam.right, level, nextLevel, variable);
       if (levelIsBetween(i,'C4','T1') || levelIsBetween(i,'L1','S1')) {
         const sensoryResult = checkLevelWithoutMotor(level, leftSensoryResult, rightSensoryResult, variable);
         result = checkLevelWithMotor(exam, level, sensoryResult, variable);
