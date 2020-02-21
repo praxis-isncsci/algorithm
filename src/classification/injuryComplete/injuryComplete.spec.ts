@@ -86,7 +86,7 @@ const tests: Test[] = [
         ]
       }
     ],
-    expected: 'C*,I',
+    expected: 'C,I', // TODO check if this should be C,I
   }, {
     cases: [
       {
