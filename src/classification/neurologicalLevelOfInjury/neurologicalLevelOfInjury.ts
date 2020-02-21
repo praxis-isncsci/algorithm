@@ -67,9 +67,12 @@ export const determineNeurologicalLevelOfInjury = (exam: Exam): string => {
   for (let i = 0; i < SensoryLevels.length; i++) {
     const level = SensoryLevels[i];
     const nextLevel = SensoryLevels[i + 1];
-    let result;
+    let result: CheckLevelResult = {
+      continue: true,
+      variable: false,
+    };
     if (!nextLevel) {
-      listOfNLI.push('INT');
+      listOfNLI.push('INT' + (variable ? '*' : ''));
     } else {
       const leftSensoryResult = checkSensoryLevel(exam.left, level, nextLevel, variable);
       const rightSensoryResult = checkSensoryLevel(exam.right, level, nextLevel, variable);
