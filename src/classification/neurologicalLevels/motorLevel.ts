@@ -37,6 +37,8 @@ export const checkMotorLevel = (side: ExamSide, level: MotorLevel, nextLevel: Mo
     } else {
       result.variable = true;
     }
+  } else if (side.motor[level] === '5' && ['0**','1**','2**'].includes(side.motor[nextLevel])) {
+    result.variable = true;
   }
 
   return result;
@@ -45,7 +47,7 @@ export const checkMotorLevelBeforeStartOfKeyMuscles = (side: ExamSide, level: 'C
   return {
     continue: !['0','1','2'].includes(side.motor[nextLevel]),
     level: ['0','1','2','0*','1*','2*','NT','NT*'].includes(side.motor[nextLevel]) ? level + (variable ? '*' : ''): undefined,
-    variable,
+    variable: variable || ['0**','1**','2**'].includes(side.motor[nextLevel]),
   };
 }
 

@@ -18372,7 +18372,7 @@
       "touchTotal":"66",
       "rightSensory":"T1",
       "leftSensory":"S1",
-      "rightMotor":"C8",
+      "rightMotor":"C8*",
       "leftMotor":"L4,L5*",
       "neurologicalLevelOfInjury":"C8*",
       "injuryComplete":"C",

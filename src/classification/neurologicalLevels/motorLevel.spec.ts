@@ -45,9 +45,13 @@ const beforeKeyMusclesTests: BeforeMotorTest[] = [
     cases: ['0*','1*','2*','NT','NT*'],
     expected: {continue: true, level: 'C4', variable: false},
   }, {
-    // 11 test
-    cases: ['3','4','5','3*','4*','0**','1**','2**','3**','4**','NT**'],
+    // 11 test??? TODO
+    cases: ['3','4','5','3*','4*','3**','4**','NT**'],
     expected: {continue: true, variable: false},
+  }, {
+    // 11 test??? TODO
+    cases: ['0**','1**','2**'],
+    expected: {continue: true, variable: true},
   },
 ];
 
@@ -75,17 +79,20 @@ const tests: Test[] = [
     )),
     expected: {continue: false, level: currentLevel + '*', variable: true},
   }, {
-    // 11 test
+    // 11 test??? TODO
     cases: allTests.filter(test => (
       contains(test, 'currentLevel', ['5']) &&
-      !contains(test, 'nextLevel', ['0','1','2','0*','1*','2*','NT','NT*'])
+      !contains(test, 'nextLevel', ['0','1','2','0*','1*','2*','0**','1**','2**','NT','NT*'])
     )),
     expected: {continue: true, variable: false},
   }, {
-    // 66 test
+    // 66 test??? TODO
     cases: allTests.filter(test => (
       contains(test, 'currentLevel', ['0**','1**','2**','3**','4**','NT**']) &&
       !contains(test, 'nextLevel', ['0','1','2','0*','1*','2*','NT','NT*'])
+    ) || (
+      contains(test, 'currentLevel', ['5']) &&
+      contains(test, 'nextLevel', ['0**','1**','2**'])
     )),
     expected: {continue: true, variable: true},
   }, {
