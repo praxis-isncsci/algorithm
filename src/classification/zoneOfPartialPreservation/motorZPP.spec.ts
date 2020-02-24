@@ -121,37 +121,60 @@ describe('motorZPP', () => {
     afterEach(() => {
       allValues.push(side.motor[currentLevel]);
     })
-    const continueValues: MotorMuscleValue[] = ['0']
-    const continueWithLevelValues: MotorMuscleValue[] = ['0*', 'NT*', 'NT']
-    const breakWithLevelValues: MotorMuscleValue[] = [ '1', '2', '3', '4', '5', '1*', '2*', '3*', '4*', '0**', '1**', '2**', '3**', '4**', 'NT**'];
+    const continueValues: MotorMuscleValue[] = ['0'];
+    const continueWithLevelValues: MotorMuscleValue[] = ['NT*', 'NT'];
+    const breakWithLevelValues: MotorMuscleValue[] = [ '1', '2', '3', '4', '5', '1*', '2*', '3*', '4*', '1**', '2**', '3**', '4**', 'NT**'];
+
+    const continueWithLevelValueStar: MotorMuscleValue[] = ['0*'];
+    const breakWithLevelValuesStar: MotorMuscleValue[] = ['0**'];
 
     // 1 test
     for (const x of continueValues) {
       it(`motor.L5 = ${x};`, () => {
         side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel);
+        const result = checkLevelForMotorZPP(side, currentLevel, false);
         expect(result.continue).toBe(true);
         expect(result.level).toBeUndefined();
       })
     }
 
-    // 3 test
+    // 2 test
     for (const x of continueWithLevelValues) {
       it(`motor.L5 = ${x};`, () => {
         side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel);
+        const result = checkLevelForMotorZPP(side, currentLevel, false);
         expect(result.continue).toBe(true);
         expect(result.level).toBe(currentLevel);
       })
     }
 
-    // 15 test
+    // 14 test
     for (const x of breakWithLevelValues) {
       it(`motor.L5 = ${x};`, () => {
         side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel);
+        const result = checkLevelForMotorZPP(side, currentLevel, false);
         expect(result.continue).toBe(false);
         expect(result.level).toBe(currentLevel);
+      })
+    }
+
+    // 1 test
+    for (const x of continueWithLevelValueStar) {
+      it(`motor.L5 = ${x};`, () => {
+        side.motor.L5 = x;
+        const result = checkLevelForMotorZPP(side, currentLevel, false);
+        expect(result.continue).toBe(true);
+        expect(result.level).toBe(currentLevel + '*');
+      })
+    }
+
+    // 1 test
+    for (const x of breakWithLevelValuesStar) {
+      it(`motor.L5 = ${x};`, () => {
+        side.motor.L5 = x;
+        const result = checkLevelForMotorZPP(side, currentLevel, false);
+        expect(result.continue).toBe(false);
+        expect(result.level).toBe(currentLevel + '*');
       })
     }
 
@@ -162,6 +185,7 @@ describe('motorZPP', () => {
     })
   })
 
+  // TODO: rewrite tests
   // 100 + 1 verification test
   describe(`checkLevelForMotorZPPOnSensory: using currentLevel = T12`, () => {
     const allValues: {x: SensoryPointValue; y: SensoryPointValue}[] = [];
@@ -184,7 +208,7 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(false);
             expect(result.level).toBe('T12');
           })
@@ -200,14 +224,14 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
           it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
             side.pinPrick.T12 = y;
             side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
@@ -220,7 +244,7 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
@@ -233,14 +257,14 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
           it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
             side.pinPrick.T12 = y;
             side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
@@ -256,14 +280,14 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('T12');
           })
           it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
             side.pinPrick.T12 = y;
             side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('T12');
           })
@@ -276,7 +300,7 @@ describe('motorZPP', () => {
           it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
             side.pinPrick.T12 = x;
             side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12');
+            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('T12');
           })
@@ -291,7 +315,9 @@ describe('motorZPP', () => {
     })
   })
 
-  describe(`lowestNonKeyMuscleWithMotorFunction`, () => {
+  // TODO: get more specific requirement for when lowestNonKeyMuscleWithMotorFunction
+  // should be used and not used
+  xdescribe(`lowestNonKeyMuscleWithMotorFunction`, () => {
     // 20 + 1 verification test
     describe('with empty side', () => {
       beforeAll(() => {
@@ -331,7 +357,7 @@ describe('motorZPP', () => {
       expect(undefined).toBeDefined();
     })
     // 20 + 1 verification test
-    xdescribe('with normal side', () => {
+    describe('with normal side', () => {
       beforeAll(() => {
         side = newNormalSide();
       })
@@ -365,5 +391,4 @@ describe('motorZPP', () => {
       })
     })
   })
-
 })
