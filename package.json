@@ -6,7 +6,10 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "rollup -c",
-    "test": "jest --watch"
+    "coverage": "jest --coverage",
+    "test-result": "jest --json --outputFile=testResult.json",
+    "test": "jest --watch",
+    "test-silent": "jest --watch --silent"
   },
   "author": "",
   "license": "ISC",
