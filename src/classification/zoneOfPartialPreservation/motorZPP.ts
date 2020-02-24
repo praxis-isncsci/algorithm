@@ -22,20 +22,29 @@ const canBeParalyzedMotor = (value: MotorMuscleValue): boolean => ['0', '0*', 'N
  */
 const canBeNormalSensory = (value: SensoryPointValue): boolean => ['2', 'NT', '0**', '1**', 'NT**'].includes(value);
 
-export const checkLevelForMotorZPP = (side: ExamSide, level: MotorLevel): CheckLevelResult => {
+export const checkLevelForMotorZPP = (side: ExamSide, level: MotorLevel, variable: boolean): CheckLevelResult => {
+  const result: CheckLevelResult = {continue: true, variable};
   if (side.motor[level] === '0') {
-    // TODO: remove hard coded variable
-    return {continue: true, variable: false};
+    return result;
   }
-  if (canBeTotalParalysisMotor(side.motor[level])) {
-    // TODO: remove hard coded variable
-    return {continue: true, level, variable: false};
+
+  if (!['0*','NT','NT*'].includes(side.motor[level])) {
+    result.continue = false;
   }
-  // TODO: remove hard coded variable
-  return {continue: false, level, variable: false};
+
+  if (['0*','0**'].includes(side.motor[level])) {
+    result.level = level + '*';
+  } else {
+    result.level = level + (variable? '*' : '');
+  }
+
+  if (['0*','0**'].includes(side.motor[level])) {
+    result.variable = true;
+  }
+  return result;
 }
 
-export const checkLevelForMotorZPPOnSensory = (side: ExamSide, level: SensoryLevel, extremityIsAllNormal: boolean, extremityCanBeAllNormal: boolean, extremityCanBeAllParalyzed: boolean): CheckLevelResult => {
+export const checkLevelForMotorZPPOnSensory = (side: ExamSide, level: SensoryLevel, variable: boolean, extremityIsAllNormal: boolean, extremityCanBeAllNormal: boolean, extremityCanBeAllParalyzed: boolean): CheckLevelResult => {
   if (level === 'C1') {
     throw `invalid argument level: ${level}`;
   }
@@ -49,32 +58,23 @@ export const checkLevelForMotorZPPOnSensory = (side: ExamSide, level: SensoryLev
   if (canBeNormalLightTouch && canBeNormalPinPrick) {
     if (extremityCanBeAllNormal) {
       if (extremityIsAllNormal || extremityCanBeAllParalyzed || side.lightTouch[level] === 'NT' || side.pinPrick[level] === 'NT') {
-        result.level = level;
+        result.level = level + (variable ? '*' : '');
         if (extremityIsAllNormal && side.lightTouch[level] !== 'NT' && side.pinPrick[level] !== 'NT') {
           result.continue = false;
         }
       }
       return result;
     } else if (side.lightTouch[level] !== 'NT' || side.pinPrick[level] !== 'NT') {
-      return {continue: true, variable: false};
+      return {continue: true, variable};
     }
 
     if (side.lightTouch[level] === 'NT' || side.pinPrick[level] === 'NT') {
-      // TODO: remove hard coded variable
-      return {continue: true, level, variable: false};
-    // } else if (
-    //   [side.lightTouch[level],side.pinPrick[level]].includes('0**') ||
-    //   [side.lightTouch[level],side.pinPrick[level]].includes('1**') ||
-    //   [side.lightTouch[level],side.pinPrick[level]].includes('NT**')
-    // ) {
-    //   return {continue: true, level: level + '*', variable: true};
+      return {continue: true, level: level + (variable ? '*' : ''), variable};
     } else {
-      // TODO: remove hard coded variable
-      return {continue: false/*noZeroYet*/, level, variable: false};
+      return {continue: false, level: level + (variable ? '*' : ''), variable};
     }
   } else {
-    // TODO: remove hard coded variable
-    return {continue: true, variable: false};
+    return {continue: true, variable};
   }
 }
 
@@ -88,28 +88,34 @@ const checkLowestNonKeyMuscleWithMotorFunction = (levels: string[], lowestNonKey
   }
 }
 
-const getCanBeConsecutivelyBeNormalDownTo = (side: ExamSide): SensoryLevel => {
+const getCanBeConsecutivelyBeNormalDownTo = (side: ExamSide): CheckLevelResult => {
+  const result = { continue: true, level: 'S4_5', variable: false }
   for (let i = SensoryLevels.indexOf('C2'); i < SensoryLevels.length; i++) {
     if (levelIsBetween(i,'C5','T1') || levelIsBetween(i,'L2','S1')) {
       const index = i - (levelIsBetween(i,'C5','T1') ? 4 : 16);
       const level = MotorLevels[index];
-      if (!canBeNormalMotor(side.motor[level])) {
-        return SensoryLevels[i - 1];
+      if (side.motor[level] === '0**' || ['0**', '1**', 'NT**'].includes(side.lightTouch[level]) || ['0**', '1**', 'NT**'].includes(side.pinPrick[level])) {
+        result.variable = true;
       }
-      if (!canBeNormalSensory(side.lightTouch[level]) || !canBeNormalSensory(side.pinPrick[level])) {
-        return SensoryLevels[i - 1];
+      if (!canBeNormalMotor(side.motor[level]) || !canBeNormalSensory(side.lightTouch[level]) || !canBeNormalSensory(side.pinPrick[level])) {
+        result.level = SensoryLevels[i - 1];
+        break;
       }
     } else {
       const level = SensoryLevels[i];
       if (level === 'C1') {
         throw `invalid argument level: ${level}`;
       }
+      if (['0**', '1**', 'NT**'].includes(side.lightTouch[level]) || ['0**', '1**', 'NT**'].includes(side.pinPrick[level])) {
+        result.variable = true;
+      }
       if (!canBeNormalSensory(side.lightTouch[level]) || !canBeNormalSensory(side.pinPrick[level])) {
-        return SensoryLevels[i - 1];
+        result.level = SensoryLevels[i - 1];
+        break;
       }
     }
   }
-  return 'S4_5';
+  return result;
 }
 
 const isAllNormalExtremity = (side: ExamSide, option: 'lower' | 'upper'): boolean => {
@@ -232,6 +238,30 @@ const findStartingIndex = (side: ExamSide): number => {
   }
   return SensoryLevels.indexOf('S3');
 }
+
+// contains side-effect code for result and levels
+const checkMotorsOnly = (side: ExamSide, levels: string[], result: CheckLevelResult, option: 'upper' | 'lower'): number => {
+  let startingIndex = -1;
+  let variable = false;
+  const startingMotorIndex = option === 'upper' ? MotorLevels.indexOf('T1') : MotorLevels.length - 1;
+  const endingMotorIndex = option === 'upper' ? 0 : MotorLevels.indexOf('L2');
+  for (let i = startingMotorIndex; i >= endingMotorIndex; i--) {
+    const level = MotorLevels[i];
+    result = checkLevelForMotorZPP(side, level, variable);
+    variable = variable || result.variable;
+    if (result.level) {
+      levels.unshift(result.level);
+    }
+    if (!result.continue) {
+      startingIndex = -1;
+      break;
+    } else {
+      startingIndex = SensoryLevels.indexOf(level);
+    }
+  }
+  return startingIndex;
+}
+
 /**
  * TODO
  * 1. Check VAC value and S4_5 values
@@ -261,12 +291,13 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
     let result: CheckLevelResult = {continue: true, variable: false};
     if (
       voluntaryAnalContraction === 'NT' ||
-      (voluntaryAnalContraction === 'No' && canBeConsecutivelyBeNormalDownTo === 'S4_5')
+      (voluntaryAnalContraction === 'No' && canBeConsecutivelyBeNormalDownTo.level === 'S4_5')
     ) {
       zpp.push('NA');
       result = checkLevelForMotorZPPOnSensory(
         side,
         'S4_5',
+        false,
         lowerExtremityIsAllNormal,
         upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal,
         false
@@ -281,37 +312,14 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
     }
 
     let startingIndex = findStartingIndex(side);
+    let variable = canBeConsecutivelyBeNormalDownTo.variable;
     if (hasImpairedExtremity(side, 'lower') || hasImpairedExtremity(side, 'upper')) {
       // only check motor levels
-      for (let i = MotorLevels.length - 1; i >= MotorLevels.indexOf('L2'); i--) {
-        const level = MotorLevels[i];
-        result = checkLevelForMotorZPP(side, level);
-
-        if (result.level) {
-          levels.unshift(result.level);
-        }
-        if (!result.continue) {
-          return [...zpp, ...levels].join(',');
-        } else {
-          startingIndex = SensoryLevels.indexOf(level);
-        }
-      }
+      startingIndex = checkMotorsOnly(side, levels, result, 'lower');
     }
-    if (hasImpairedExtremity(side, 'upper')) {
+    if (startingIndex >= 0 && hasImpairedExtremity(side, 'upper')) {
       // only check motor levels
-      for (let i = MotorLevels.indexOf('T1'); i >= 0; i--) {
-        const level = MotorLevels[i];
-        result = checkLevelForMotorZPP(side, level);
-
-        if (result.level) {
-          levels.unshift(result.level);
-        }
-        if (!result.continue) {
-          return [...zpp, ...levels].join(',');
-        } else {
-          startingIndex = SensoryLevels.indexOf(level);
-        }
-      }
+      startingIndex = checkMotorsOnly(side, levels, result, 'upper');
     }
 
     // start iteration from bottom
@@ -325,6 +333,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
         result = checkLevelForMotorZPPOnSensory(
           side,
           level,
+          variable,
           true,
           true,
           upperExtremityCanBeAllParalyzed
@@ -336,6 +345,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
         result = checkLevelForMotorZPPOnSensory(
           side,
           level,
+          variable,
           upperExtremityIsAllNormal,
           upperExtremityCanBeAllNormal,
           lowerExtremityCanBeAllParalyzed
@@ -347,6 +357,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
         result = checkLevelForMotorZPPOnSensory(
           side,
           level,
+          variable,
           lowerExtremityIsAllNormal,
           upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal,
           false
@@ -357,7 +368,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
         // level = C5 to C8
         const index = i - (levelIsBetween(i,'C5','T1') ? 4 : 16);
         level = MotorLevels[index];
-        result = checkLevelForMotorZPP(side, level);
+        result = checkLevelForMotorZPP(side, level, variable);
       }
       // level = C1
       else {
@@ -368,6 +379,8 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       if (result.level) {
         levels.unshift(result.level);
       }
+
+      variable = variable || result.variable;
     }
 
     zpp = [...zpp, ...levels.sort((a, b) => SensoryLevels.indexOf(a.replace(/\*/, '') as SensoryLevel) - SensoryLevels.indexOf(b.replace(/\*/, '') as SensoryLevel))];
