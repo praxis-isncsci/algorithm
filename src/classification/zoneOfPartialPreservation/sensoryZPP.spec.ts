@@ -127,7 +127,7 @@ describe('sensoryZPP', () => {
           it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
             side.pinPrick.S3 = x;
             side.lightTouch.S3 = y;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(true);
             expect(result.level).toBeUndefined();
           })
@@ -135,10 +135,10 @@ describe('sensoryZPP', () => {
       }
     })
 
-    // 15 tests
+    // 12 tests
     describe('continue; add level', () => {
-      const continueValues: SensoryPointValue[] = ['0'];
-      const addLevelValues: SensoryPointValue[] = ['NT', '0*', 'NT*'];
+      const continueValues: SensoryPointValue[] = ['0', '0*'];
+      const addLevelValues: SensoryPointValue[] = ['NT', 'NT*'];
 
       // 6 tests
       for (const x of continueValues) {
@@ -146,14 +146,14 @@ describe('sensoryZPP', () => {
           it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
             side.pinPrick.S3 = x;
             side.lightTouch.S3 = y;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('S3');
           })
           it(`pinPrick.S3 = ${y}; lightTouch.S3 = ${x};`, () => {
             side.pinPrick.S3 = y;
             side.lightTouch.S3 = x;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('S3');
           })
@@ -166,9 +166,48 @@ describe('sensoryZPP', () => {
           it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
             side.pinPrick.S3 = x;
             side.lightTouch.S3 = y;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(true);
             expect(result.level).toBe('S3');
+          })
+        }
+      }
+    })
+
+    // 3 tests
+    describe('continue; add level*', () => {
+      const continueValues: SensoryPointValue[] = ['0'];
+      const addLevelValues: SensoryPointValue[] = ['0*'];
+
+      // 2 tests
+      for (const x of continueValues) {
+        for (const y of addLevelValues) {
+          it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
+            side.pinPrick.S3 = x;
+            side.lightTouch.S3 = y;
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
+            expect(result.continue).toBe(true);
+            expect(result.level).toBe('S3*');
+          })
+          it(`pinPrick.S3 = ${y}; lightTouch.S3 = ${x};`, () => {
+            side.pinPrick.S3 = y;
+            side.lightTouch.S3 = x;
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
+            expect(result.continue).toBe(true);
+            expect(result.level).toBe('S3*');
+          })
+        }
+      }
+
+      // 1 test
+      for (const x of addLevelValues) {
+        for (const y of addLevelValues) {
+          it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
+            side.pinPrick.S3 = x;
+            side.lightTouch.S3 = y;
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
+            expect(result.continue).toBe(true);
+            expect(result.level).toBe('S3*');
           })
         }
       }
@@ -185,14 +224,14 @@ describe('sensoryZPP', () => {
           it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
             side.pinPrick.S3 = x;
             side.lightTouch.S3 = y;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(false);
             expect(result.level).toBe('S3');
           })
           it(`pinPrick.S3 = ${y}; lightTouch.S3 = ${x};`, () => {
             side.pinPrick.S3 = y;
             side.lightTouch.S3 = x;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(false);
             expect(result.level).toBe('S3');
           })
@@ -205,7 +244,7 @@ describe('sensoryZPP', () => {
           it(`pinPrick.S3 = ${x}; lightTouch.S3 = ${y};`, () => {
             side.pinPrick.S3 = x;
             side.lightTouch.S3 = y;
-            const result = checkLevelForSensoryZPP(side, 'S3');
+            const result = checkLevelForSensoryZPP(side, 'S3', false);
             expect(result.continue).toBe(false);
             expect(result.level).toBe('S3');
           })
