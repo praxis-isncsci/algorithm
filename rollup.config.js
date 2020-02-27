@@ -7,34 +7,37 @@ function config({ output = {}, plugins = [] }) {
     input: 'src/ISNCSCI.ts',
     output: {
       name: 'ISNCSCI',
-      file: 'dist/ISNCSCI.js',
-      format: 'iife',
       ...output,
     },
     plugins: [
       resolve(),
-      typescript(),
+      typescript({
+        tsconfigOverride: output.format === 'cjs' ? {} : {compilerOptions: {declaration:false}},
+      }),
       ...plugins
     ]
   }
 }
 
-const devBuild = {
-  output:{
-    sourcemap: true
-  }
-};
-
-const prodBuild = {
-  output: {
-    file:'dist/ISNCSCI.min.js'
+const configs = ['iife','cjs','esm'].map(format => [
+  // development - sourcemap
+  {
+    output:{
+      file: `dist/${format}/ISNCSCI.js`,
+      format,
+      sourcemap: true,
+    }
   },
-  plugins:[
-    minify()
-  ]
-};
+  // production - minify
+  {
+    output:{
+      file: `dist/${format}/ISNCSCI.min.js`,
+      format,
+    },
+    plugins:[
+      minify()
+    ]
+  }
+]).reduce((p, c) => [...p, ...c], []);
 
-export default [
-  config(devBuild),
-  config(prodBuild),
-]
+export default configs.map(c => config(c))
