@@ -2,6 +2,16 @@ import resolve from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import { terser as minify } from "rollup-plugin-terser";
 
+const tsconfig = {
+  include: [
+      "src/**/*"
+  ],
+  exclude: [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+};
+
 function config({ output = {}, plugins = [] }) {
   return {
     input: 'src/ISNCSCI.ts',
@@ -12,7 +22,10 @@ function config({ output = {}, plugins = [] }) {
     plugins: [
       resolve(),
       typescript({
-        tsconfigOverride: output.format === 'cjs' ? {} : {compilerOptions: {declaration:false}},
+        tsconfigOverride: output.format === 'cjs' ? tsconfig : {
+          compilerOptions: {declaration:false},
+          ...tsconfig,
+        },
       }),
       ...plugins
     ]
