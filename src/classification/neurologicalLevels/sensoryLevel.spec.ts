@@ -65,8 +65,6 @@ const tests: Test[] = [
   },
 ];
 
-console.log(...tests.map(t => t.cases.length))
-
 const allTestedValues: string[] = [];
 
 const checkSensoryLevelTest = (

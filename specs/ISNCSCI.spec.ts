@@ -1,4 +1,4 @@
-import testCases from './2019_dj_fix.json';
+import testCases from './2019.json';
 import { Test, mapExam } from './helper';
 
 describe('Isncsci Algorithm rev2019 ::', () => {

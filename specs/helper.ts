@@ -4,7 +4,6 @@ import { ISNCSCI } from '../src/ISNCSCI';
 export interface Test {
   "id": number;
   "group": string;
-  "examDate": string;
   "analContraction": string;
   "analSensation": string;
   "rightLowestNonKeyMuscleWithMotorFunction": string;
