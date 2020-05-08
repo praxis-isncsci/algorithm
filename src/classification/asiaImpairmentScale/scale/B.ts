@@ -1,4 +1,4 @@
-import { MotorMuscleValue, Exam, Motor, SensoryLevel, SensoryLevels, MotorLevels, NeurologicalLevels } from "../../../interfaces";
+import { MotorMuscleValue, Exam, Motor, SensoryLevel, SensoryLevels, MotorLevels, NeurologicalLevels, MotorLevel } from "../../../interfaces";
 import { CheckAISResult, isSensoryPreserved, startingMotorIndex } from "../common";
 
 /**
@@ -6,7 +6,7 @@ import { CheckAISResult, isSensoryPreserved, startingMotorIndex } from "../commo
  */
 const canBeNoPreservedMotor = (value: MotorMuscleValue): boolean => !['0', 'NT', 'NT*', '0*'].includes(value);
 
-const canHaveNoMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel: string): CheckAISResult => {
+const canHaveNoMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel: string, lowestNonKeyMuscleWithMotorFunction?: MotorLevel): CheckAISResult => {
   let variable = false;
   for (const m of motorLevel.split(',')) {
     const index = SensoryLevels.indexOf(m.replace('*', '') as SensoryLevel) + 4;
@@ -19,7 +19,7 @@ const canHaveNoMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel
       if (motor[level] === '0*' || motor[level] === '0**') {
         variable = true;
       }
-      if (canBeNoPreservedMotor(motor[level])) {
+      if (canBeNoPreservedMotor(motor[level]) || level === lowestNonKeyMuscleWithMotorFunction) {
         thereCanBeNoMotorFunction = false;
         if (motor[level] === '0*') {
           variable = true;
@@ -41,8 +41,8 @@ const canHaveNoMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel
 }
 
 const motorCanBeNotPreserved = (exam: Exam, neurologicalLevels: NeurologicalLevels): CheckAISResult => {
-  const leftMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft);
-  const rightMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight);
+  const leftMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft, exam.left.lowestNonKeyMuscleWithMotorFunction );
+  const rightMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight, exam.right.lowestNonKeyMuscleWithMotorFunction);
   return {
     result: exam.voluntaryAnalContraction !== 'Yes' &&
       rightMotorFunctionResult.result &&

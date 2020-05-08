@@ -11348,7 +11348,7 @@
       "leftSensoryZpp": "NA",
       "rightMotorZpp": "L4",
       "leftMotorZpp": "C7",
-      "asiaImpairmentScale": "B",
+      "asiaImpairmentScale": "C",
       "injuryComplete": "I"
     },
     "note": "motor ZPP right - C7; left - C7\nAIS should be B not C (which the algorithm does correctly but the pdf is wrong)"
