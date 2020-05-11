@@ -17,7 +17,7 @@ const canHaveAtLeastHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = (e
     variable: false,
   };
   for (const nli of neurologicalLevelOfInjury.replace(/\*/g, '').split(',')) {
-    const indexOfNLI = SensoryLevels.indexOf(nli as SensoryLevel);
+    const indexOfNLI =  nli === 'INT' || nli === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(nli as SensoryLevel);
     const startIndex = startingMotorIndex(indexOfNLI + 1);
 
     const half = MotorLevels.length - startIndex;

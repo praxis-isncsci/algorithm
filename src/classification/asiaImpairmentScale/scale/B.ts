@@ -8,8 +8,9 @@ const canBeNoPreservedMotor = (value: MotorMuscleValue): boolean => !['0', 'NT',
 
 const canHaveNoMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel: string, lowestNonKeyMuscleWithMotorFunction?: MotorLevel): CheckAISResult => {
   let variable = false;
+
   for (const m of motorLevel.split(',')) {
-    const index = SensoryLevels.indexOf(m.replace('*', '') as SensoryLevel) + 4;
+    const index = m === 'INT' || m === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(m.replace('*', '') as SensoryLevel) + 4;
 
     const startingIndex = startingMotorIndex(index);
 

@@ -14,7 +14,7 @@ const motorFunctionCanBePreserved = (exam: Exam): boolean => exam.voluntaryAnalC
 const canHaveMotorFunctionMoreThanThreeLevelsBelow = (motor: Motor, motorLevel: string, lowestNonKeyMuscleWithMotorFunction?: MotorLevel): CheckAISResult => {
   let variable = false;
   for (const m of motorLevel.split(',')) {
-    const index = SensoryLevels.indexOf(m.replace('*', '') as SensoryLevel) + 4;
+    const index = m === 'INT' || m === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(m.replace('*', '') as SensoryLevel) + 4;
 
     const startingIndex = startingMotorIndex(index);
 
@@ -64,9 +64,9 @@ export const canBeMotorIncomplete = (exam: Exam, neurologicalLevels: Neurologica
 
 export const determineASIAImpairmentScale = (exam: Exam, injuryComplete: InjuryComplete, neurologicalLevels: NeurologicalLevels, neurologicalLevelOfInjury: string): string => {
   // check isNormal because description of canBeMotorIncompleteD overlaps on canBeNormal
-  if (neurologicalLevelOfInjury === 'INT') {
+  if (neurologicalLevelOfInjury === 'INT' && exam.voluntaryAnalContraction !== 'No') {
     return 'E';
-  } else if (neurologicalLevelOfInjury === 'INT*') {
+  } else if (neurologicalLevelOfInjury === 'INT*' && exam.voluntaryAnalContraction !== 'No') {
     return 'E*';
   } else {
     const possibleASIAImpairmentScales: string[] = [];
@@ -94,7 +94,7 @@ export const determineASIAImpairmentScale = (exam: Exam, injuryComplete: InjuryC
       }
     }
 
-    const resultE = checkASIAImpairmentScaleE(neurologicalLevelOfInjury);
+    const resultE = checkASIAImpairmentScaleE(neurologicalLevelOfInjury, exam.voluntaryAnalContraction);
     if (resultE) {
       possibleASIAImpairmentScales.push(resultE);
     }
