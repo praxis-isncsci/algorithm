@@ -25,27 +25,21 @@ export const calculateMotorTotal = (motor: Motor, option: 'all' | 'upper' | 'low
     throw `option should be one of 'all' | 'upper' | 'lower'`;
   }
 
-  if (values.some(v => ['NT', '0*', '1*', '2*', '3*', 'NT*'].includes(v))) {
+  if (values.some(v => ['NT', 'NT*','NT**'].includes(v))) {
     return NOT_DETERMINABLE;
   } else {
-    const variableTotals = ['0**','1**','2**','3**','4**','NT**'];
-    const total = addValues(...values.map(v => {
-      return variableTotals.includes(v) ? 5 : parseInt(v.replace(/\*/g, ''));
-    }));
-    return total + (values.some(v => variableTotals.includes(v)) ? '*' : '');
+    const total = addValues(...values.map(v => parseInt(v.replace(/\*/g, ''))));
+    return total;
   }
 }
 
 export const calculateSensoryTotal = (sensory: Sensory): string => {
   const values = Object.values(sensory);
-  if (values.some(v => ['NT','0*','NT*'].includes(v))) {
+  if (values.some(v => ['NT','NT*','NT**'].includes(v))) {
     return NOT_DETERMINABLE;
   } else {
-    const variableTotals = ['0**','1**','NT**'];
-    const total = addValues(...values.map(v => {
-      return variableTotals.includes(v) ? 2 : parseInt(v.replace(/\*/g, ''));
-    }));
-    return total + (values.some(v => variableTotals.includes(v)) ? '*' : '');
+    const total = addValues(...values.map(v => parseInt(v.replace(/\*/g, ''))));
+    return total;
   }
 }
 

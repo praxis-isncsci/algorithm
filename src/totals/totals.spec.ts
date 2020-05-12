@@ -8,26 +8,26 @@ describe('totals', () => {
   describe('calculateSensoryTotal', () => {
     const testSets: TestSet[] = [
       {
-        description: 'total without *',
+        description: 'values without *',
         tests: [
           {substitute: '0', expected: '0'},
           {substitute: '1', expected: '1'},
           {substitute: '2', expected: '2'},
-          {substitute: '1*', expected: '1'},
         ],
       }, {
-        description: 'total with *',
+        description: 'values with *',
         tests: [
-          {substitute: '0**', expected: '2*'},
-          {substitute: '1**', expected: '2*'},
-          {substitute: 'NT**', expected: '2*'},
+          {substitute: '0*', expected: '0'},
+          {substitute: '1*', expected: '1'},
+          {substitute: '0**', expected: '0'},
+          {substitute: '1**', expected: '1'},
         ],
       }, {
-        description: 'total with ND',
+        description: 'values with ND',
         tests: [
           {substitute: 'NT', expected: 'ND'},
-          {substitute: '0*', expected: 'ND'},
           {substitute: 'NT*', expected: 'ND'},
+          {substitute: 'NT**', expected: 'ND'},
         ],
       }
     ]
@@ -48,7 +48,7 @@ describe('totals', () => {
   describe('calculateMotorTotal', () => {
     const testSets: TestSet[] = [
       {
-        description: 'total without *',
+        description: 'values without *',
         tests: [
           {substitute: '0', expected: '0'},
           {substitute: '1', expected: '1'},
@@ -56,27 +56,27 @@ describe('totals', () => {
           {substitute: '3', expected: '3'},
           {substitute: '4', expected: '4'},
           {substitute: '5', expected: '5'},
-          {substitute: '4*', expected: '4'},
         ],
       }, {
-        description: 'total with *',
+        description: 'values with *',
         tests: [
-          {substitute: '0**', expected: '5*'},
-          {substitute: '1**', expected: '5*'},
-          {substitute: '2**', expected: '5*'},
-          {substitute: '3**', expected: '5*'},
-          {substitute: '4**', expected: '5*'},
-          {substitute: 'NT**', expected: '5*'},
+          {substitute: '0*', expected: '0'},
+          {substitute: '1*', expected: '1'},
+          {substitute: '2*', expected: '2'},
+          {substitute: '3*', expected: '3'},
+          {substitute: '4*', expected: '4'},
+          {substitute: '0**', expected: '0'},
+          {substitute: '1**', expected: '1'},
+          {substitute: '2**', expected: '2'},
+          {substitute: '3**', expected: '3'},
+          {substitute: '4**', expected: '4'},
         ],
       }, {
-        description: 'total with ND',
+        description: 'values with NT',
         tests: [
           {substitute: 'NT', expected: 'ND'},
-          {substitute: '0*', expected: 'ND'},
-          {substitute: '1*', expected: 'ND'},
-          {substitute: '2*', expected: 'ND'},
-          {substitute: '3*', expected: 'ND'},
           {substitute: 'NT*', expected: 'ND'},
+          {substitute: 'NT**', expected: 'ND'},
         ],
       }
     ]
