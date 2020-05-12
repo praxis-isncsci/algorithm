@@ -839,11 +839,11 @@ var checkASIAImpairmentScaleA = function (injuryComplete) {
  * ```!['0', 'NT', 'NT*', '0*'].includes(value)```
  */
 var canBeNoPreservedMotor = function (value) { return !['0', 'NT', 'NT*', '0*'].includes(value); };
-var canHaveNoMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel) {
+var canHaveNoMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel, lowestNonKeyMuscleWithMotorFunction) {
     var variable = false;
     for (var _i = 0, _a = motorLevel.split(','); _i < _a.length; _i++) {
         var m = _a[_i];
-        var index = SensoryLevels.indexOf(m.replace('*', '')) + 4;
+        var index = m === 'INT' || m === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(m.replace('*', '')) + 4;
         var startingIndex = startingMotorIndex(index);
         var thereCanBeNoMotorFunction = true;
         for (var i = startingIndex; i < MotorLevels.length; i++) {
@@ -851,7 +851,7 @@ var canHaveNoMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel
             if (motor[level] === '0*' || motor[level] === '0**') {
                 variable = true;
             }
-            if (canBeNoPreservedMotor(motor[level])) {
+            if (canBeNoPreservedMotor(motor[level]) || level === lowestNonKeyMuscleWithMotorFunction) {
                 thereCanBeNoMotorFunction = false;
                 if (motor[level] === '0*') {
                     variable = true;
@@ -872,8 +872,8 @@ var canHaveNoMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel
     };
 };
 var motorCanBeNotPreserved = function (exam, neurologicalLevels) {
-    var leftMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft);
-    var rightMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight);
+    var leftMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft, exam.left.lowestNonKeyMuscleWithMotorFunction);
+    var rightMotorFunctionResult = canHaveNoMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight, exam.right.lowestNonKeyMuscleWithMotorFunction);
     return {
         result: exam.voluntaryAnalContraction !== 'Yes' &&
             rightMotorFunctionResult.result &&
@@ -913,7 +913,7 @@ var canHaveVariableMuscleGradeLessThan3 = function (value) { return ['0*', '1*',
 var canHaveLessThanHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = function (exam, neurologicalLevelOfInjury) {
     for (var _i = 0, _a = neurologicalLevelOfInjury.replace(/\*/g, '').split(','); _i < _a.length; _i++) {
         var nli = _a[_i];
-        var indexOfNLI = SensoryLevels.indexOf(nli);
+        var indexOfNLI = nli === 'INT' || nli === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(nli);
         var startIndex = startingMotorIndex(indexOfNLI + 1);
         var half = MotorLevels.length - startIndex;
         var count = 0;
@@ -980,6 +980,9 @@ var canHaveAtLeastHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = func
     };
     for (var _i = 0, _a = neurologicalLevelOfInjury.replace(/\*/g, '').split(','); _i < _a.length; _i++) {
         var nli = _a[_i];
+        if (nli === 'INT') {
+            break;
+        }
         var indexOfNLI = SensoryLevels.indexOf(nli);
         var startIndex = startingMotorIndex(indexOfNLI + 1);
         var half = MotorLevels.length - startIndex;
@@ -1023,15 +1026,17 @@ var checkASIAImpairmentScaleD = function (exam, neurologicalLevelOfInjury, canBe
     }
 };
 
-var checkASIAImpairmentScaleE = function (neurologicalLevelOfInjury) {
-    if (neurologicalLevelOfInjury.includes('INT*')) {
-        return 'E*';
-    }
-    else if (neurologicalLevelOfInjury.includes('INT')) {
-        return 'E';
-    }
-    else {
-        return;
+var checkASIAImpairmentScaleE = function (neurologicalLevelOfInjury, voluntaryAnalContraction) {
+    if (voluntaryAnalContraction !== 'No') {
+        if (neurologicalLevelOfInjury.includes('INT*')) {
+            return 'E*';
+        }
+        else if (neurologicalLevelOfInjury.includes('INT')) {
+            return 'E';
+        }
+        else {
+            return;
+        }
     }
 };
 
@@ -1039,18 +1044,18 @@ var checkASIAImpairmentScaleE = function (neurologicalLevelOfInjury) {
  * exam.voluntaryAnalContraction !== 'No'
  */
 var motorFunctionCanBePreserved = function (exam) { return exam.voluntaryAnalContraction !== 'No'; };
-var canHaveMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel) {
+var canHaveMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel, lowestNonKeyMuscleWithMotorFunction) {
     var variable = false;
     for (var _i = 0, _a = motorLevel.split(','); _i < _a.length; _i++) {
         var m = _a[_i];
-        var index = SensoryLevels.indexOf(m.replace('*', '')) + 4;
+        var index = m === 'INT' || m === 'INT*' ? SensoryLevels.indexOf('S4_5') : SensoryLevels.indexOf(m.replace('*', '')) + 4;
         var startingIndex = startingMotorIndex(index);
         for (var i = startingIndex; i < MotorLevels.length; i++) {
             var level = MotorLevels[i];
             if (motor[level] === '0**') {
                 variable = true;
             }
-            if (motor[level] !== '0') {
+            if (motor[level] !== '0' || level === lowestNonKeyMuscleWithMotorFunction) {
                 return {
                     result: true,
                     variable: variable,
@@ -1074,8 +1079,8 @@ var canBeMotorIncomplete = function (exam, neurologicalLevels) {
     }
     var isSensoryPreservedResult = isSensoryPreserved(exam);
     if (isSensoryPreservedResult.result) {
-        var rightMotorFunctionResult = canHaveMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight);
-        var leftMotorFunctionResult = canHaveMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft);
+        var rightMotorFunctionResult = canHaveMotorFunctionMoreThanThreeLevelsBelow(exam.right.motor, neurologicalLevels.motorRight, exam.right.lowestNonKeyMuscleWithMotorFunction);
+        var leftMotorFunctionResult = canHaveMotorFunctionMoreThanThreeLevelsBelow(exam.left.motor, neurologicalLevels.motorLeft, exam.left.lowestNonKeyMuscleWithMotorFunction);
         if (rightMotorFunctionResult.result || leftMotorFunctionResult.result) {
             result.result = true;
             if (rightMotorFunctionResult.variable || leftMotorFunctionResult.variable) {
@@ -1087,10 +1092,10 @@ var canBeMotorIncomplete = function (exam, neurologicalLevels) {
 };
 var determineASIAImpairmentScale = function (exam, injuryComplete, neurologicalLevels, neurologicalLevelOfInjury) {
     // check isNormal because description of canBeMotorIncompleteD overlaps on canBeNormal
-    if (neurologicalLevelOfInjury === 'INT') {
+    if (neurologicalLevelOfInjury === 'INT' && exam.voluntaryAnalContraction === 'Yes') {
         return 'E';
     }
-    else if (neurologicalLevelOfInjury === 'INT*') {
+    else if (neurologicalLevelOfInjury === 'INT*' && exam.voluntaryAnalContraction === 'Yes') {
         return 'E*';
     }
     else {
@@ -1114,7 +1119,7 @@ var determineASIAImpairmentScale = function (exam, injuryComplete, neurologicalL
                 possibleASIAImpairmentScales.push(resultD);
             }
         }
-        var resultE = checkASIAImpairmentScaleE(neurologicalLevelOfInjury);
+        var resultE = checkASIAImpairmentScaleE(neurologicalLevelOfInjury, exam.voluntaryAnalContraction);
         if (resultE) {
             possibleASIAImpairmentScales.push(resultE);
         }
@@ -1157,28 +1162,22 @@ var calculateMotorTotal = function (motor, option) {
     if (!values) {
         throw "option should be one of 'all' | 'upper' | 'lower'";
     }
-    if (values.some(function (v) { return ['NT', '0*', '1*', '2*', '3*', 'NT*'].includes(v); })) {
+    if (values.some(function (v) { return ['NT', 'NT*', 'NT**'].includes(v); })) {
         return NOT_DETERMINABLE;
     }
     else {
-        var variableTotals_1 = ['0**', '1**', '2**', '3**', '4**', 'NT**'];
-        var total = addValues.apply(void 0, values.map(function (v) {
-            return variableTotals_1.includes(v) ? 5 : parseInt(v.replace(/\*/g, ''));
-        }));
-        return total + (values.some(function (v) { return variableTotals_1.includes(v); }) ? '*' : '');
+        var total = addValues.apply(void 0, values.map(function (v) { return parseInt(v.replace(/\*/g, '')); }));
+        return total;
     }
 };
 var calculateSensoryTotal = function (sensory) {
     var values = Object.values(sensory);
-    if (values.some(function (v) { return ['NT', '0*', 'NT*'].includes(v); })) {
+    if (values.some(function (v) { return ['NT', 'NT*', 'NT**'].includes(v); })) {
         return NOT_DETERMINABLE;
     }
     else {
-        var variableTotals_2 = ['0**', '1**', 'NT**'];
-        var total = addValues.apply(void 0, values.map(function (v) {
-            return variableTotals_2.includes(v) ? 2 : parseInt(v.replace(/\*/g, ''));
-        }));
-        return total + (values.some(function (v) { return variableTotals_2.includes(v); }) ? '*' : '');
+        var total = addValues.apply(void 0, values.map(function (v) { return parseInt(v.replace(/\*/g, '')); }));
+        return total;
     }
 };
 var addTotals = function () {

@@ -64,9 +64,9 @@ export const canBeMotorIncomplete = (exam: Exam, neurologicalLevels: Neurologica
 
 export const determineASIAImpairmentScale = (exam: Exam, injuryComplete: InjuryComplete, neurologicalLevels: NeurologicalLevels, neurologicalLevelOfInjury: string): string => {
   // check isNormal because description of canBeMotorIncompleteD overlaps on canBeNormal
-  if (neurologicalLevelOfInjury === 'INT' && exam.voluntaryAnalContraction !== 'No') {
+  if (neurologicalLevelOfInjury === 'INT' && exam.voluntaryAnalContraction === 'Yes') {
     return 'E';
-  } else if (neurologicalLevelOfInjury === 'INT*' && exam.voluntaryAnalContraction !== 'No') {
+  } else if (neurologicalLevelOfInjury === 'INT*' && exam.voluntaryAnalContraction === 'Yes') {
     return 'E*';
   } else {
     const possibleASIAImpairmentScales: string[] = [];
