@@ -1,7 +1,7 @@
 import { Exam, MotorLevels, SensoryLevel, SensoryLevels } from "../../interfaces";
 import { levelIsBetween, CheckLevelResult } from "../common";
 import { checkSensoryLevel } from "../neurologicalLevels/sensoryLevel";
-import { checkMotorLevel, checkMotorLevelAtEndOfKeyMuscles, checkMotorLevelBeforeStartOfKeyMuscles } from "../neurologicalLevels/motorLevel";
+import { checkMotorLevel, checkMotorLevelBeforeStartOfKeyMuscles } from "../neurologicalLevels/motorLevel";
 
 export const checkLevelWithoutMotor = (level: SensoryLevel, leftSensoryResult: CheckLevelResult, rightSensoryResult: CheckLevelResult, variable: boolean): CheckLevelResult => {
   let resultLevel;
@@ -39,7 +39,7 @@ export const checkLevelWithMotor = (exam: Exam, level: SensoryLevel, sensoryResu
     const rightMotorResult = level === 'C4' || level === 'L1' ?
       checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
       level === 'T1' || level === 'S1' ?
-        checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hotfix
+        checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hot fix
         checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
 
     let resultLevel;

@@ -18,4 +18,4 @@ export const isNormalSensory = (value: SensoryPointValue): boolean => ['2','NT**
 
 export const levelIsBetween = (index: number, firstLevel: SensoryLevel, lastLevel: SensoryLevel): boolean => {
   return index >= SensoryLevels.indexOf(firstLevel) && index <= SensoryLevels.indexOf(lastLevel);
-}
+};

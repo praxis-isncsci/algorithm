@@ -8,7 +8,10 @@
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended"
     ],
-    "ignorePatterns": ["**/*.js"],
+    "ignorePatterns": [
+        "**/*.js",
+        "dist"
+    ],
     "parser": "@typescript-eslint/parser",
     "plugins": ["@typescript-eslint"],
     "parserOptions": {

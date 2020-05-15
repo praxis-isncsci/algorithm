@@ -9,7 +9,7 @@
     "build": "rollup -c",
     "coverage": "jest --coverage",
     "test-result": "jest --json --outputFile=testResult.json",
-    "test": "jest",
+    "test": "jest && eslint **/*.ts && cspell **",
     "test-silent": "jest --watch --silent"
   },
   "author": "",

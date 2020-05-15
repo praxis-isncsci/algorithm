@@ -4,7 +4,7 @@ import { levelIsBetween, CheckLevelResult, isNormalSensory } from "../common";
 /**
  * `['NT', '0*', 'NT*'].includes(value)`
  */
-const canBeTotalParalysisMotor = (value: MotorMuscleValue): boolean => ['NT', '0*', 'NT*'].includes(value);
+// const canBeTotalParalysisMotor = (value: MotorMuscleValue): boolean => ['NT', '0*', 'NT*'].includes(value);
 /**
  * `['5', 'NT', '0**', '1**', '2**', '3**', '4**', 'NT**'].includes(value)`
  */

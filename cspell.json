@@ -1,0 +1,16 @@
+{
+  "ignorePaths": [
+    "dist/**",
+    "specs/*.json",
+    "node_modules/**",
+    "package-lock.json"
+  ],
+  "words": [
+    "ESNEXT",
+    "iife",
+    "isncsci",
+    "prebuild",
+    "sourcemap",
+    "zpp"
+  ]
+}
