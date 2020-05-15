@@ -133,7 +133,7 @@ var checkMotorLevelBeforeStartOfKeyMuscles = function (side, level, nextLevel, v
     return {
         "continue": !['0', '1', '2'].includes(side.motor[nextLevel]),
         level: ['0', '1', '2', '0*', '1*', '2*', 'NT', 'NT*'].includes(side.motor[nextLevel]) ? level + (variable ? '*' : '') : undefined,
-        variable: variable || ['0**', '1**', '2**'].includes(side.motor[nextLevel]),
+        variable: variable || ['0**', '1**', '2**'].includes(side.motor[nextLevel])
     };
 };
 var checkMotorLevelUsingSensoryValues = function (side, firstMotorLevelOfMotorBlock) {
@@ -245,18 +245,18 @@ var determineNeurologicalLevels = function (exam) {
 };
 
 /*! *****************************************************************************
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
+Copyright (c) Microsoft Corporation.
 
-THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-MERCHANTABLITY OR NON-INFRINGEMENT.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-See the Apache Version 2.0 License for specific language governing permissions
-and limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 
 function __spreadArrays() {
@@ -373,7 +373,7 @@ var checkLevelForMotorZPPOnSensory = function (side, level, variable, extremityI
     }
     var result = {
         "continue": true,
-        variable: false,
+        variable: false
     };
     var canBeNormalLightTouch = canBeNormalSensory(side.lightTouch[level]);
     var canBeNormalPinPrick = canBeNormalSensory(side.pinPrick[level]);
@@ -688,7 +688,7 @@ var checkLevelWithoutMotor = function (level, leftSensoryResult, rightSensoryRes
     return {
         "continue": leftSensoryResult["continue"] && rightSensoryResult["continue"],
         level: resultLevel,
-        variable: variable || leftSensoryResult.variable || rightSensoryResult.variable,
+        variable: variable || leftSensoryResult.variable || rightSensoryResult.variable
     };
 };
 var checkLevelWithMotor = function (exam, level, sensoryResult, variable) {
@@ -723,7 +723,7 @@ var checkLevelWithMotor = function (exam, level, sensoryResult, variable) {
         return {
             "continue": leftMotorResult["continue"] && rightMotorResult["continue"],
             level: resultLevel,
-            variable: variable || sensoryResult.variable || leftMotorResult.variable || rightMotorResult.variable,
+            variable: variable || sensoryResult.variable || leftMotorResult.variable || rightMotorResult.variable
         };
     }
 };
@@ -735,7 +735,7 @@ var determineNeurologicalLevelOfInjury = function (exam) {
         var nextLevel = SensoryLevels[i + 1];
         var result = {
             "continue": true,
-            variable: false,
+            variable: false
         };
         if (!nextLevel) {
             listOfNLI.push('INT' + (variable ? '*' : ''));
@@ -823,7 +823,7 @@ var isSensoryPreserved = function (exam) {
         result: exam.deepAnalPressure !== 'No' ||
             exam.right.lightTouch.S4_5 !== '0' || exam.right.pinPrick.S4_5 !== '0' ||
             exam.left.lightTouch.S4_5 !== '0' || exam.left.pinPrick.S4_5 !== '0',
-        variable: exam.deepAnalPressure === 'No' && !sensoryAtS45.every(function (v) { return v === '0'; }) && sensoryAtS45.every(function (v) { return ['0', '0*', '0**'].includes(v); }),
+        variable: exam.deepAnalPressure === 'No' && !sensoryAtS45.every(function (v) { return v === '0'; }) && sensoryAtS45.every(function (v) { return ['0', '0*', '0**'].includes(v); })
     };
 };
 
@@ -866,13 +866,13 @@ var canHaveNoMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel
         if (thereCanBeNoMotorFunction) {
             return {
                 result: true,
-                variable: variable,
+                variable: variable
             };
         }
     }
     return {
         result: false,
-        variable: false,
+        variable: false
     };
 };
 var motorCanBeNotPreserved = function (exam, neurologicalLevels) {
@@ -883,7 +883,7 @@ var motorCanBeNotPreserved = function (exam, neurologicalLevels) {
             rightMotorFunctionResult.result &&
             leftMotorFunctionResult.result,
         variable: exam.voluntaryAnalContraction === 'No' &&
-            (leftMotorFunctionResult.variable || rightMotorFunctionResult.variable),
+            (leftMotorFunctionResult.variable || rightMotorFunctionResult.variable)
     };
 };
 /**
@@ -894,7 +894,7 @@ var canBeSensoryIncomplete = function (exam, neurologicalLevels) {
     var motorCanBeNotPreservedResult = motorCanBeNotPreserved(exam, neurologicalLevels);
     return {
         result: isSensoryPreservedResult.result && motorCanBeNotPreservedResult.result,
-        variable: isSensoryPreservedResult.variable || motorCanBeNotPreservedResult.variable,
+        variable: isSensoryPreservedResult.variable || motorCanBeNotPreservedResult.variable
     };
 };
 var checkASIAImpairmentScaleB = function (exam, neurologicalLevels) {
@@ -941,20 +941,20 @@ var canHaveLessThanHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = fun
             if (count - variableCount > half) {
                 return {
                     result: true,
-                    variable: false,
+                    variable: false
                 };
             }
         }
         if (count > half && count - variableCount <= half) {
             return {
                 result: true,
-                variable: true,
+                variable: true
             };
         }
     }
     return {
         result: false,
-        variable: false,
+        variable: false
     };
 };
 var checkASIAImpairmentScaleC = function (exam, neurologicalLevelOfInjury, canBeMotorIncompleteResult) {
@@ -980,7 +980,7 @@ var canHaveVariableMuscleGradeAtLeast3 = function (value) { return ['0*', '1*', 
 var canHaveAtLeastHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = function (exam, neurologicalLevelOfInjury) {
     var result = {
         result: false,
-        variable: false,
+        variable: false
     };
     for (var _i = 0, _a = neurologicalLevelOfInjury.replace(/\*/g, '').split(','); _i < _a.length; _i++) {
         var nli = _a[_i];
@@ -993,7 +993,7 @@ var canHaveAtLeastHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = func
         if (half === 0) {
             return {
                 result: true,
-                variable: false,
+                variable: false
             };
         }
         var count = 0;
@@ -1007,7 +1007,7 @@ var canHaveAtLeastHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = func
             if (count - variableCount >= half) {
                 return {
                     result: true,
-                    variable: false,
+                    variable: false
                 };
             }
         }
@@ -1062,20 +1062,20 @@ var canHaveMotorFunctionMoreThanThreeLevelsBelow = function (motor, motorLevel, 
             if (motor[level] !== '0' || level === lowestNonKeyMuscleWithMotorFunction) {
                 return {
                     result: true,
-                    variable: variable,
+                    variable: variable
                 };
             }
         }
     }
     return {
         result: variable,
-        variable: variable,
+        variable: variable
     };
 };
 var canBeMotorIncomplete = function (exam, neurologicalLevels) {
     var result = {
         result: false,
-        variable: false,
+        variable: false
     };
     if (motorFunctionCanBePreserved(exam)) {
         result.result = true;
@@ -1218,7 +1218,7 @@ var calculateTotals = function (exam) {
         upperExtremity: upperExtremity,
         lowerExtremity: lowerExtremity,
         lightTouch: lightTouch,
-        pinPrick: pinPrick,
+        pinPrick: pinPrick
     };
 };
 
@@ -1231,4 +1231,5 @@ var ISNCSCI = /** @class */ (function () {
 }());
 
 exports.ISNCSCI = ISNCSCI;
+exports.default = ISNCSCI;
 //# sourceMappingURL=ISNCSCI.js.map

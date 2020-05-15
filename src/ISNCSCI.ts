@@ -2,7 +2,7 @@ import { Classification, Exam, Totals } from './interfaces';
 import { classify } from './classification';
 import { calculateTotals } from './totals/totals';
 
-export class ISNCSCI {
+class ISNCSCI {
   public classification: Classification;
   public totals: Totals;
   constructor(exam: Exam) {
@@ -10,3 +10,6 @@ export class ISNCSCI {
     this.totals = calculateTotals(exam);
   }
 }
+
+export { Exam, ISNCSCI };
+export default ISNCSCI;

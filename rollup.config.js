@@ -1,16 +1,5 @@
-import resolve from 'rollup-plugin-node-resolve';
-import typescript from 'rollup-plugin-typescript2';
+import typescript from '@rollup/plugin-typescript';
 import { terser as minify } from "rollup-plugin-terser";
-
-const tsconfig = {
-  include: [
-      "src/**/*"
-  ],
-  exclude: [
-    "node_modules",
-    "**/*.spec.ts"
-  ]
-};
 
 function config({ output = {}, plugins = [] }) {
   return {
@@ -20,12 +9,10 @@ function config({ output = {}, plugins = [] }) {
       ...output,
     },
     plugins: [
-      resolve(),
+      // resolve(),
       typescript({
-        tsconfigOverride: output.format === 'cjs' ? tsconfig : {
-          compilerOptions: {declaration:false},
-          ...tsconfig,
-        },
+        declaration: output.format === 'cjs',
+        outDir: output.dir,
       }),
       ...plugins
     ]
@@ -36,7 +23,9 @@ const configs = ['iife','cjs','esm'].map(format => [
   // development - sourcemap
   {
     output:{
-      file: `dist/${format}/ISNCSCI.js`,
+      dir: `dist/${format}`,
+      entryFileNames: `ISNCSCI.js`,
+      exports: 'named',
       format,
       sourcemap: true,
     }
@@ -44,7 +33,9 @@ const configs = ['iife','cjs','esm'].map(format => [
   // production - minify
   {
     output:{
-      file: `dist/${format}/ISNCSCI.min.js`,
+      dir: `dist/${format}`,
+      entryFileNames: `ISNCSCI.min.js`,
+      exports: 'named',
       format,
     },
     plugins:[
