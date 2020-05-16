@@ -2,17 +2,21 @@ import typescript from '@rollup/plugin-typescript';
 import { terser as minify } from "rollup-plugin-terser";
 
 function config({ output = {}, plugins = [] }) {
+  const dir = `dist/${output.format}`;
   return {
     input: 'src/ISNCSCI.ts',
     output: {
-      name: 'ISNCSCI',
+      dir,
+      extend: output.format === 'iife',
+      name: output.format === 'iife' ? 'window' : undefined,
+      exports: 'named',
       ...output,
     },
     plugins: [
       // resolve(),
       typescript({
         declaration: output.format === 'cjs',
-        outDir: output.dir,
+        outDir: dir,
       }),
       ...plugins
     ]
@@ -23,9 +27,7 @@ const configs = ['iife','cjs','esm'].map(format => [
   // development - sourcemap
   {
     output:{
-      dir: `dist/${format}`,
       entryFileNames: `ISNCSCI.js`,
-      exports: 'named',
       format,
       sourcemap: true,
     }
@@ -33,9 +35,7 @@ const configs = ['iife','cjs','esm'].map(format => [
   // production - minify
   {
     output:{
-      dir: `dist/${format}`,
       entryFileNames: `ISNCSCI.min.js`,
-      exports: 'named',
       format,
     },
     plugins:[

@@ -1,4 +1,4 @@
-var ISNCSCI = (function (exports) {
+(function (exports) {
     'use strict';
 
     var MotorLevels = [
@@ -331,6 +331,10 @@ var ISNCSCI = (function (exports) {
         }
     };
 
+    /**
+     * `['NT', '0*', 'NT*'].includes(value)`
+     */
+    // const canBeTotalParalysisMotor = (value: MotorMuscleValue): boolean => ['NT', '0*', 'NT*'].includes(value);
     /**
      * `['5', 'NT', '0**', '1**', '2**', '3**', '4**', 'NT**'].includes(value)`
      */
@@ -707,7 +711,7 @@ var ISNCSCI = (function (exports) {
             var rightMotorResult = level === 'C4' || level === 'L1' ?
                 checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
                 level === 'T1' || level === 'S1' ?
-                    checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hotfix
+                    checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hot fix
                     checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
             var resultLevel = void 0;
             if (leftMotorResult.level || rightMotorResult.level || sensoryResult.level) {
@@ -1232,7 +1236,5 @@ var ISNCSCI = (function (exports) {
     exports.ISNCSCI = ISNCSCI;
     exports.default = ISNCSCI;
 
-    return exports;
-
-}({}));
+}(this.window = this.window || {}));
 //# sourceMappingURL=ISNCSCI.js.map
