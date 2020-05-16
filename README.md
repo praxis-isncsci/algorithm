@@ -2,8 +2,24 @@
 This algorithm is designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA).
 
 ## Install
+Using npm
 ```
 npm i @praxis-isncsci/algorithm
+```
+
+Using on a browser (unpkg)
+```html
+<!-- using IIFE -->
+<!-- defines ISNCSCI on window object -->
+<script src="https://unpkg.com/@praxis-isncsci/algorithm/dist/iife/ISNCSCI.min.js"></script>
+
+<!-- using ES module -->
+<script type="module">
+  // using default import
+  import ISNCSCI from "https://unpkg.com/@praxis-isncsci/algorithm/dist/esm/ISNCSCI.min.js"
+  // using named import
+  import { ISNCSCI } from "https://unpkg.com/@praxis-isncsci/algorithm/dist/esm/ISNCSCI.min.js"
+</script>
 ```
 
 ### Code
@@ -11,11 +27,11 @@ npm i @praxis-isncsci/algorithm
 /**
  *  example import statements
  */
-// ES module
+// TypeScript (ES module)
 import { ISNCSCI, Exam } from '@praxis-isncsci/algorithm';
 // default import
 // import ISNCSCI from '@praxis-isncsci/algorithm';
-// cjs
+// CommonJS
 // const ISNCSCI = require("@praxis-isncsci/algorithm").ISNCSCI;
 
 // create exam
