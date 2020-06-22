@@ -143,21 +143,13 @@ export interface Test {
   "s4_5LeftPrick": string;
   "totals": {
     "rightUpperMotorTotal": string;
-    "rightUpperMotorContainsNt": boolean;
     "leftUpperMotorTotal": string;
-    "leftUpperMotorContainsNt": boolean;
     "rightLowerMotorTotal": string;
-    "rightLowerMotorContainsNt": boolean;
     "leftLowerMotorTotal": string;
-    "leftLowerMotorContainsNt": boolean;
     "rightTouchTotal": string;
-    "rightTouchContainsNt": boolean;
     "leftTouchTotal": string;
-    "leftTouchContainsNt": boolean;
     "rightPrickTotal": string;
-    "rightPrickContainsNt": boolean;
     "leftPrickTotal": string;
-    "leftPrickContainsNt": boolean;
     "rightMotorTotal": string;
     "leftMotorTotal": string;
     "upperMotorTotal": string;
