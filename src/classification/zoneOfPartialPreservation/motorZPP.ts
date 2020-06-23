@@ -78,8 +78,8 @@ export const checkLevelForMotorZPPOnSensory = (side: ExamSide, level: SensoryLev
   }
 }
 
-const checkLowestNonKeyMuscleWithMotorFunction = (levels: string[], lowestNonKeyMuscleWithMotorFunction: MotorLevel): boolean => {
-  if (lowestNonKeyMuscleWithMotorFunction) {
+const checkLowestNonKeyMuscleWithMotorFunction = (levels: string[], lowestNonKeyMuscleWithMotorFunction: MotorLevel, startingIndex: number): boolean => {
+  if (SensoryLevels.indexOf(lowestNonKeyMuscleWithMotorFunction) > startingIndex) {
     const indexes = levels.map(s => SensoryLevels.indexOf(s.replace(/\*/, '') as SensoryLevel));
     const lowestNonKeyMuscleWithMotorFunctionIndex = SensoryLevels.indexOf(lowestNonKeyMuscleWithMotorFunction);
     return indexes.every(i => i <= lowestNonKeyMuscleWithMotorFunctionIndex);
@@ -290,8 +290,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
     // TODO: remove hard coded variable
     let result: CheckLevelResult = {continue: true, variable: false};
     if (
-      voluntaryAnalContraction === 'NT' ||
-      (voluntaryAnalContraction === 'No' && canBeConsecutivelyBeNormalDownTo.level === 'S4_5')
+      voluntaryAnalContraction === 'NT'
     ) {
       zpp.push('NA');
       result = checkLevelForMotorZPPOnSensory(
@@ -304,14 +303,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       );
     }
 
-    if (
-      side.lowestNonKeyMuscleWithMotorFunction &&
-      checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction)
-    ) {
-      return side.lowestNonKeyMuscleWithMotorFunction;
-    }
-
-    let startingIndex = findStartingIndex(side);
+    let startingIndex = canBeConsecutivelyBeNormalDownTo.level === 'S4_5' && side.lightTouch.S4_5 === '2' && side.pinPrick.S4_5 === '2' ? SensoryLevels.indexOf('S1') : findStartingIndex(side);
     let variable = canBeConsecutivelyBeNormalDownTo.variable;
     if (hasImpairedExtremity(side, 'lower') || hasImpairedExtremity(side, 'upper')) {
       // only check motor levels
@@ -320,6 +312,13 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
     if (startingIndex >= 0 && hasImpairedExtremity(side, 'upper')) {
       // only check motor levels
       startingIndex = checkMotorsOnly(side, levels, result, 'upper');
+    }
+
+    if (
+      side.lowestNonKeyMuscleWithMotorFunction &&
+      checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction, startingIndex)
+    ) {
+      return side.lowestNonKeyMuscleWithMotorFunction;
     }
 
     // start iteration from bottom

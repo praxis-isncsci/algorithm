@@ -40,47 +40,16 @@ describe('motorZPP', () => {
       afterEach(() => {
         allValues.push({voluntaryAnalContraction, pinPrick: side.pinPrick.S4_5, lightTouch: side.lightTouch.S4_5});
       })
-      const notExpectNAValues: SensoryPointValue[] = ['0', '1', '0*', '1*', 'NT*'];
-      const expectNAValues: SensoryPointValue[] = ['2', '0**', '1**', 'NT', 'NT**'];
+      const expectNAValues: SensoryPointValue[] = ['0', '1', '0*', '1*', 'NT*', '2', '0**', '1**', 'NT', 'NT**'];
 
-      // 25 tests
-      for (const x of notExpectNAValues) {
-        for (const y of notExpectNAValues) {
-          it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
-            side.pinPrick.S4_5 = x;
-            side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
-            expect(result).not.toContain('NA');
-          })
-        }
-      }
-
-      // 50 tests
-      for (const x of expectNAValues) {
-        for (const y of notExpectNAValues) {
-          it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
-            side.pinPrick.S4_5 = x;
-            side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
-            expect(result).not.toContain('NA');
-          })
-          it(`pinPrick.S4_5 = ${y}; lightTouch.S4_5 = ${x};`, () => {
-            side.pinPrick.S4_5 = y;
-            side.lightTouch.S4_5 = x;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
-            expect(result).not.toContain('NA');
-          })
-        }
-      }
-
-      // 25 tests
+      // 100 tests
       for (const x of expectNAValues) {
         for (const y of expectNAValues) {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
             const result = determineMotorZPP(side, voluntaryAnalContraction);
-            expect(result).toContain('NA');
+            expect(result).not.toContain('NA');
           })
         }
       }
