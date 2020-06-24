@@ -401,8 +401,8 @@ var checkLevelForMotorZPPOnSensory = function (side, level, variable, extremityI
         return { "continue": true, variable: variable };
     }
 };
-var checkLowestNonKeyMuscleWithMotorFunction = function (levels, lowestNonKeyMuscleWithMotorFunction) {
-    if (lowestNonKeyMuscleWithMotorFunction) {
+var checkLowestNonKeyMuscleWithMotorFunction = function (levels, lowestNonKeyMuscleWithMotorFunction, startingIndex) {
+    if (SensoryLevels.indexOf(lowestNonKeyMuscleWithMotorFunction) > startingIndex) {
         var indexes = levels.map(function (s) { return SensoryLevels.indexOf(s.replace(/\*/, '')); });
         var lowestNonKeyMuscleWithMotorFunctionIndex_1 = SensoryLevels.indexOf(lowestNonKeyMuscleWithMotorFunction);
         return indexes.every(function (i) { return i <= lowestNonKeyMuscleWithMotorFunctionIndex_1; });
@@ -586,7 +586,7 @@ var checkMotorsOnly = function (side, levels, result, option) {
  * @param side
  * @param voluntaryAnalContraction
  */
-var determineMotorZPP = function (side, voluntaryAnalContraction) {
+var determineMotorZPP = function (side, voluntaryAnalContraction, ais) {
     if (voluntaryAnalContraction === 'Yes') {
         return 'NA';
     }
@@ -603,16 +603,11 @@ var determineMotorZPP = function (side, voluntaryAnalContraction) {
         var level = void 0;
         // TODO: remove hard coded variable
         var result = { "continue": true, variable: false };
-        if (voluntaryAnalContraction === 'NT' ||
-            (voluntaryAnalContraction === 'No' && canBeConsecutivelyBeNormalDownTo.level === 'S4_5')) {
+        if (voluntaryAnalContraction === 'NT') {
             zpp.push('NA');
             result = checkLevelForMotorZPPOnSensory(side, 'S4_5', false, lowerExtremityIsAllNormal, upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal, false);
         }
-        if (side.lowestNonKeyMuscleWithMotorFunction &&
-            checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction)) {
-            return side.lowestNonKeyMuscleWithMotorFunction;
-        }
-        var startingIndex = findStartingIndex(side);
+        var startingIndex = canBeConsecutivelyBeNormalDownTo.level === 'S4_5' && side.lightTouch.S4_5 === '2' && side.pinPrick.S4_5 === '2' ? SensoryLevels.indexOf('S1') : findStartingIndex(side);
         var variable = canBeConsecutivelyBeNormalDownTo.variable;
         if (hasImpairedExtremity(side, 'lower') || hasImpairedExtremity(side, 'upper')) {
             // only check motor levels
@@ -621,6 +616,10 @@ var determineMotorZPP = function (side, voluntaryAnalContraction) {
         if (startingIndex >= 0 && hasImpairedExtremity(side, 'upper')) {
             // only check motor levels
             startingIndex = checkMotorsOnly(side, levels, result, 'upper');
+        }
+        if (side.lowestNonKeyMuscleWithMotorFunction &&
+            checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction, startingIndex)) {
+            return __spreadArrays(zpp, [side.lowestNonKeyMuscleWithMotorFunction]).join(',');
         }
         // start iteration from bottom
         for (var i = startingIndex; i >= 0; i--) {
@@ -646,6 +645,10 @@ var determineMotorZPP = function (side, voluntaryAnalContraction) {
             }
             // check motor
             else if (levelIsBetween(i, 'C5', 'T1') || levelIsBetween(i, 'L2', 'S1')) {
+                if ((ais === 'C' || ais === 'C*') && level === side.lowestNonKeyMuscleWithMotorFunction) {
+                    levels.unshift(level);
+                    break;
+                }
                 // level = C5 to C8
                 var index = i - (levelIsBetween(i, 'C5', 'T1') ? 4 : 16);
                 level = MotorLevels[index];
@@ -666,11 +669,11 @@ var determineMotorZPP = function (side, voluntaryAnalContraction) {
     }
 };
 
-var determineZoneOfPartialPreservations = function (exam) {
+var determineZoneOfPartialPreservations = function (exam, ASIAImpairmentScale) {
     var sensoryRight = determineSensoryZPP(exam.right, exam.deepAnalPressure);
     var sensoryLeft = determineSensoryZPP(exam.left, exam.deepAnalPressure);
-    var motorRight = determineMotorZPP(exam.right, exam.voluntaryAnalContraction);
-    var motorLeft = determineMotorZPP(exam.left, exam.voluntaryAnalContraction);
+    var motorRight = determineMotorZPP(exam.right, exam.voluntaryAnalContraction, ASIAImpairmentScale);
+    var motorLeft = determineMotorZPP(exam.left, exam.voluntaryAnalContraction, ASIAImpairmentScale);
     return { sensoryRight: sensoryRight, sensoryLeft: sensoryLeft, motorRight: motorRight, motorLeft: motorLeft };
 };
 
@@ -1136,7 +1139,7 @@ var classify = function (exam) {
     var neurologicalLevelOfInjury = determineNeurologicalLevelOfInjury(exam);
     var injuryComplete = determineInjuryComplete(exam);
     var ASIAImpairmentScale = determineASIAImpairmentScale(exam, injuryComplete, neurologicalLevels, neurologicalLevelOfInjury);
-    var zoneOfPartialPreservations = determineZoneOfPartialPreservations(exam);
+    var zoneOfPartialPreservations = determineZoneOfPartialPreservations(exam, ASIAImpairmentScale);
     return { neurologicalLevels: neurologicalLevels, neurologicalLevelOfInjury: neurologicalLevelOfInjury, injuryComplete: injuryComplete, ASIAImpairmentScale: ASIAImpairmentScale, zoneOfPartialPreservations: zoneOfPartialPreservations };
 };
 

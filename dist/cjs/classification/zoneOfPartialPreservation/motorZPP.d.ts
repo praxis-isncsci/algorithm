@@ -11,4 +11,4 @@ export declare const checkLevelForMotorZPPOnSensory: (side: ExamSide, level: Sen
  * @param side
  * @param voluntaryAnalContraction
  */
-export declare const determineMotorZPP: (side: ExamSide, voluntaryAnalContraction: BinaryObservation) => string;
+export declare const determineMotorZPP: (side: ExamSide, voluntaryAnalContraction: BinaryObservation, ais: string) => string;
