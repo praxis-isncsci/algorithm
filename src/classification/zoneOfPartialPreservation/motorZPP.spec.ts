@@ -27,7 +27,7 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
+            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
             expect(result).toContain('NA');
           })
         }
@@ -48,7 +48,7 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
+            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
             expect(result).not.toContain('NA');
           })
         }
@@ -68,7 +68,7 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction);
+            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
             expect(result).toContain('NA');
           })
         }
@@ -284,9 +284,8 @@ describe('motorZPP', () => {
     })
   })
 
-  // TODO: get more specific requirement for when lowestNonKeyMuscleWithMotorFunction
-  // should be used and not used
-  xdescribe(`lowestNonKeyMuscleWithMotorFunction`, () => {
+  // lowestNonKeyMuscleWithMotorFunction is only used when AIS = C or C*
+  describe(`lowestNonKeyMuscleWithMotorFunction`, () => {
     // 20 + 1 verification test
     describe('with empty side', () => {
       beforeAll(() => {
@@ -304,14 +303,14 @@ describe('motorZPP', () => {
         it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
           vac = 'No'
           side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac);
+          const result = determineMotorZPP(side, vac, 'C');
           expect(result).toBe(x);
         })
         it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
           vac = 'NT'
           side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac);
-          expect(result).toBe(x);
+          const result = determineMotorZPP(side, vac, 'C');
+          expect(result).toBe('NA,' + x);
         })
       }
 
@@ -322,9 +321,6 @@ describe('motorZPP', () => {
       })
     })
 
-    it('TODO incomplete tests', () => {
-      expect(undefined).toBeDefined();
-    })
     // 20 + 1 verification test
     describe('with normal side', () => {
       beforeAll(() => {
@@ -342,13 +338,13 @@ describe('motorZPP', () => {
         it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
           vac = 'No'
           side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac);
-          expect(result).toBe('NA');
+          const result = determineMotorZPP(side, vac, 'C');
+          expect(result).toBe('S1');
         })
         it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
           vac = 'NT'
           side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac);
+          const result = determineMotorZPP(side, vac, 'C');
           expect(result).toBe('NA');
         })
       }

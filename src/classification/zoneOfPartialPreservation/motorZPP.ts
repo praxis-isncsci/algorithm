@@ -271,7 +271,7 @@ const checkMotorsOnly = (side: ExamSide, levels: string[], result: CheckLevelRes
  * @param side
  * @param voluntaryAnalContraction
  */
-export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: BinaryObservation): string => {
+export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: BinaryObservation, ais: string): string => {
   if (voluntaryAnalContraction === 'Yes') {
     return 'NA';
   } else {
@@ -318,7 +318,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       side.lowestNonKeyMuscleWithMotorFunction &&
       checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction, startingIndex)
     ) {
-      return side.lowestNonKeyMuscleWithMotorFunction;
+      return [...zpp,side.lowestNonKeyMuscleWithMotorFunction].join(',');
     }
 
     // start iteration from bottom
@@ -364,6 +364,10 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       }
       // check motor
       else if (levelIsBetween(i,'C5','T1') || levelIsBetween(i,'L2','S1')) {
+        if ((ais === 'C' || ais === 'C*') && level === side.lowestNonKeyMuscleWithMotorFunction) {
+          levels.unshift(level);
+          break;
+        }
         // level = C5 to C8
         const index = i - (levelIsBetween(i,'C5','T1') ? 4 : 16);
         level = MotorLevels[index];
