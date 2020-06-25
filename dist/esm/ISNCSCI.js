@@ -185,7 +185,7 @@ var checkMotorLevelAtEndOfKeyMuscles = function (side, level, variable) {
  *    a. ...
  * 2. return current list
  */
-var determineMotorLevel = function (side) {
+var determineMotorLevel = function (side, vac) {
     var levels = [];
     var level;
     var nextLevel;
@@ -216,7 +216,26 @@ var determineMotorLevel = function (side) {
             result = checkMotorLevelAtEndOfKeyMuscles(side, level, variable);
         }
         else {
-            result = { "continue": false, level: 'INT' + (variable ? '*' : ''), variable: variable };
+            if (vac === 'No') {
+                if ((levels.includes('S3') || levels.includes('S3*'))) {
+                    break;
+                }
+                else {
+                    result = { "continue": false, level: 'S3' + (variable ? '*' : ''), variable: variable };
+                }
+            }
+            else if (vac === 'NT') {
+                if ((levels.includes('S3') || levels.includes('S3*'))) {
+                    result = { "continue": false, level: 'INT' + (variable ? '*' : ''), variable: variable };
+                }
+                else {
+                    levels.push('S3' + (variable ? '*' : ''));
+                    result = { "continue": false, level: 'INT' + (variable ? '*' : ''), variable: variable };
+                }
+            }
+            else {
+                result = { "continue": false, level: 'INT' + (variable ? '*' : ''), variable: variable };
+            }
         }
         variable = variable || result.variable;
         if (result.level) {
@@ -235,8 +254,8 @@ var determineMotorLevel = function (side) {
 var determineNeurologicalLevels = function (exam) {
     var sensoryRight = determineSensoryLevel(exam.right);
     var sensoryLeft = determineSensoryLevel(exam.left);
-    var motorRight = determineMotorLevel(exam.right);
-    var motorLeft = determineMotorLevel(exam.left);
+    var motorRight = determineMotorLevel(exam.right, exam.voluntaryAnalContraction);
+    var motorLeft = determineMotorLevel(exam.left, exam.voluntaryAnalContraction);
     return { sensoryRight: sensoryRight, sensoryLeft: sensoryLeft, motorRight: motorRight, motorLeft: motorLeft };
 };
 
@@ -607,7 +626,7 @@ var determineMotorZPP = function (side, voluntaryAnalContraction, ais) {
             zpp.push('NA');
             result = checkLevelForMotorZPPOnSensory(side, 'S4_5', false, lowerExtremityIsAllNormal, upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal, false);
         }
-        var startingIndex = canBeConsecutivelyBeNormalDownTo.level === 'S4_5' && side.lightTouch.S4_5 === '2' && side.pinPrick.S4_5 === '2' ? SensoryLevels.indexOf('S1') : findStartingIndex(side);
+        var startingIndex = findStartingIndex(side);
         var variable = canBeConsecutivelyBeNormalDownTo.variable;
         if (hasImpairedExtremity(side, 'lower') || hasImpairedExtremity(side, 'upper')) {
             // only check motor levels
@@ -617,10 +636,11 @@ var determineMotorZPP = function (side, voluntaryAnalContraction, ais) {
             // only check motor levels
             startingIndex = checkMotorsOnly(side, levels, result, 'upper');
         }
-        if (side.lowestNonKeyMuscleWithMotorFunction &&
+        if (side.lowestNonKeyMuscleWithMotorFunction && (ais === 'C' || ais === 'C*') &&
             checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction, startingIndex)) {
             return __spreadArrays(zpp, [side.lowestNonKeyMuscleWithMotorFunction]).join(',');
         }
+        console.log(startingIndex, SensoryLevels.indexOf('S3'));
         // start iteration from bottom
         for (var i = startingIndex; i >= 0; i--) {
             if (!result["continue"]) {
@@ -642,6 +662,9 @@ var determineMotorZPP = function (side, voluntaryAnalContraction, ais) {
             }
             else if (levelIsBetween(i, 'S2', 'S3')) {
                 result = checkLevelForMotorZPPOnSensory(side, level, variable, lowerExtremityIsAllNormal, upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal, false);
+                if (level === 'S3' && isNormalSensory(side.lightTouch.S4_5) && isNormalSensory(side.pinPrick.S4_5)) {
+                    result.level = 'S3';
+                }
             }
             // check motor
             else if (levelIsBetween(i, 'C5', 'T1') || levelIsBetween(i, 'L2', 'S1')) {

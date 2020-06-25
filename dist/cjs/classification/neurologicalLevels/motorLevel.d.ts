@@ -1,4 +1,4 @@
-import { ExamSide, MotorLevel } from '../../interfaces';
+import { ExamSide, MotorLevel, BinaryObservation } from '../../interfaces';
 import { CheckLevelResult } from '../common';
 export declare const checkMotorLevel: (side: ExamSide, level: MotorLevel, nextLevel: MotorLevel, variable: boolean) => CheckLevelResult;
 export declare const checkMotorLevelBeforeStartOfKeyMuscles: (side: ExamSide, level: 'C4' | 'L1', nextLevel: MotorLevel, variable: boolean) => CheckLevelResult;
@@ -9,4 +9,4 @@ export declare const checkMotorLevelAtEndOfKeyMuscles: (side: ExamSide, level: '
  *    a. ...
  * 2. return current list
  */
-export declare const determineMotorLevel: (side: ExamSide) => string;
+export declare const determineMotorLevel: (side: ExamSide, vac: BinaryObservation) => string;
