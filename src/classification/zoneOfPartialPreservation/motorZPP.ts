@@ -303,7 +303,7 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       );
     }
 
-    let startingIndex = canBeConsecutivelyBeNormalDownTo.level === 'S4_5' && side.lightTouch.S4_5 === '2' && side.pinPrick.S4_5 === '2' ? SensoryLevels.indexOf('S1') : findStartingIndex(side);
+    let startingIndex = findStartingIndex(side);
     let variable = canBeConsecutivelyBeNormalDownTo.variable;
     if (hasImpairedExtremity(side, 'lower') || hasImpairedExtremity(side, 'upper')) {
       // only check motor levels
@@ -315,11 +315,13 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
     }
 
     if (
-      side.lowestNonKeyMuscleWithMotorFunction &&
+      side.lowestNonKeyMuscleWithMotorFunction && (ais === 'C' || ais === 'C*') &&
       checkLowestNonKeyMuscleWithMotorFunction(levels, side.lowestNonKeyMuscleWithMotorFunction, startingIndex)
     ) {
       return [...zpp,side.lowestNonKeyMuscleWithMotorFunction].join(',');
     }
+
+    console.log(startingIndex, SensoryLevels.indexOf('S3'))
 
     // start iteration from bottom
     for (let i = startingIndex; i >= 0; i--) {
@@ -361,6 +363,9 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
           upperExtremityCanBeAllNormal && lowerExtremityCanBeAllNormal,
           false
         );
+        if (level === 'S3' && isNormalSensory(side.lightTouch.S4_5) && isNormalSensory(side.pinPrick.S4_5)) {
+          result.level = 'S3';
+        }
       }
       // check motor
       else if (levelIsBetween(i,'C5','T1') || levelIsBetween(i,'L2','S1')) {

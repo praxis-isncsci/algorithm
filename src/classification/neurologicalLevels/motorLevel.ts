@@ -1,4 +1,4 @@
-import { ExamSide, MotorLevel, MotorLevels, SensoryLevel, SensoryLevels } from '../../interfaces';
+import { ExamSide, MotorLevel, MotorLevels, SensoryLevel, SensoryLevels, BinaryObservation } from '../../interfaces';
 import { checkSensoryLevel } from './sensoryLevel';
 import { levelIsBetween, CheckLevelResult } from '../common';
 
@@ -125,7 +125,7 @@ export const checkMotorLevelAtEndOfKeyMuscles = (side: ExamSide, level: 'T1' | '
  *    a. ...
  * 2. return current list
  */
-export const determineMotorLevel = (side: ExamSide): string => {
+export const determineMotorLevel = (side: ExamSide, vac: BinaryObservation): string => {
   const levels: string[] = [];
   let level: SensoryLevel | MotorLevel;
   let nextLevel: SensoryLevel | MotorLevel;
@@ -155,7 +155,22 @@ export const determineMotorLevel = (side: ExamSide): string => {
     else if (level === 'T1' || level === 'S1') {
       result = checkMotorLevelAtEndOfKeyMuscles(side, level, variable);
     } else {
-      result = {continue: false, level: 'INT' + (variable ? '*' : ''), variable};
+      if (vac === 'No') {
+        if ((levels.includes('S3') || levels.includes('S3*'))) {
+          break;
+        } else {
+          result = {continue: false, level: 'S3' + (variable ? '*' : ''), variable};
+        }
+      } else if (vac === 'NT') {
+        if ((levels.includes('S3') || levels.includes('S3*'))) {
+          result = {continue: false, level: 'INT' + (variable ? '*' : ''), variable};
+        } else {
+          levels.push('S3' + (variable ? '*' : ''));
+          result = {continue: false, level: 'INT' + (variable ? '*' : ''), variable};
+        }
+      } else {
+        result = {continue: false, level: 'INT' + (variable ? '*' : ''), variable};
+      }
     }
     variable = variable || result.variable;
     if (result.level) {

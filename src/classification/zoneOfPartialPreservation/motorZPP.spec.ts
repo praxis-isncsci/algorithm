@@ -339,7 +339,7 @@ describe('motorZPP', () => {
           vac = 'No'
           side.lowestNonKeyMuscleWithMotorFunction = x;
           const result = determineMotorZPP(side, vac, 'C');
-          expect(result).toBe('S1');
+          expect(result).toBe('S3');
         })
         it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
           vac = 'NT'
