@@ -1,7 +1,7 @@
 {
-  "name": "@praxis-isncsci/algorithm",
-  "version": "0.0.1",
-  "description": "",
+  "name": "isncsci",
+  "version": "2.0.0-beta",
+  "description": "Algorithm designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA)",
   "main": "./dist/cjs/ISNCSCI.js",
   "module": "./dist/esm/ISNCSCI.js",
   "scripts": {
@@ -12,8 +12,8 @@
     "test": "jest && eslint **/*.ts && cspell **",
     "test-silent": "jest --watch --silent"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Praxis Spinal Cord Institute",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@rollup/plugin-typescript": "^4.1.1",
     "@types/jest": "^25.2.2",
@@ -28,6 +28,9 @@
     "ts-jest": "^25.5.1",
     "typescript": "^3.9.2"
   },
+  "files": [
+    "dist"
+  ],
   "jest": {
     "testEnvironment": "node"
   }

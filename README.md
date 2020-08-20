@@ -1,39 +1,51 @@
 # ISNCSCI Algorithm
 This algorithm is designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA).
 
-## Install
-Using npm
-```
-npm i @praxis-isncsci/algorithm
-```
-
-Using on a browser (unpkg)
+## Import library
+### Using on a browser (unpkg)
 ```html
 <!-- using IIFE -->
 <!-- defines ISNCSCI on window object -->
-<script src="https://unpkg.com/@praxis-isncsci/algorithm/dist/iife/ISNCSCI.min.js"></script>
+<script src="https://unpkg.com/isncsci/dist/iife/ISNCSCI.min.js"></script>
 
 <!-- using ES module -->
 <script type="module">
   // using default import
-  import ISNCSCI from "https://unpkg.com/@praxis-isncsci/algorithm/dist/esm/ISNCSCI.min.js"
+  import ISNCSCI from "https://unpkg.com/isncsci/dist/esm/ISNCSCI.min.js"
   // using named import
-  import { ISNCSCI } from "https://unpkg.com/@praxis-isncsci/algorithm/dist/esm/ISNCSCI.min.js"
+  import { ISNCSCI } from "https://unpkg.com/isncsci/dist/esm/ISNCSCI.min.js"
 </script>
 ```
 
-### Code
-```ts
-/**
- *  example import statements
- */
-// TypeScript (ES module)
-import { ISNCSCI, Exam } from '@praxis-isncsci/algorithm';
-// default import
-// import ISNCSCI from '@praxis-isncsci/algorithm';
-// CommonJS
-// const ISNCSCI = require("@praxis-isncsci/algorithm").ISNCSCI;
+### Using in JavaScript projects
+Install library using NPM
+```
+npm i isncsci
+```
 
+Then import the library in your project
+
+Named import
+```ts
+// Recommended with typescript
+import { ISNCSCI, Exam } from 'isncsci';
+```
+
+Default import
+```ts
+import ISNCSCI from 'isncsci';
+```
+
+CommonJS
+```ts
+const { ISNCSCI } = require("isncsci");
+// or
+const ISNCSCI = require("isncsci").ISNCSCI;
+```
+
+## Usage
+TypeScript example
+```ts
 // create exam
 let exam: Exam = {
   deepAnalPressure: "Yes",
@@ -42,39 +54,39 @@ let exam: Exam = {
     lowestNonKeyMuscleWithMotorFunction: "C8",
     motor: {
       C5: "5",
-      // ...
+      /* ... */
       S1: "2*",
     },
     lightTouch: {
       C2: "2",
-      // ...
+      /* ... */
       S4_5: "1*",
     },
     pinPrick: {
       C2: "1**",
-      // ...
+      /* ... */
       S4_5: "0",
     }
   },
   left: {
-    motor: { /***/ },
-    lightTouch: { /***/ },
-    pinPrick: { /***/ },
+    motor: { /* ... */ },
+    lightTouch: { /* ... */ },
+    pinPrick: { /* ... */ },
   },
 }
 
 // get result
 let result = new ISNCSCI(exam);
 
-// log classification result
+// output classification result
 console.log(result.classification);
 
-// log totals result
+// output totals result
 console.log(result.totals);
 ```
 
 ## API
-Following shows the possible values each properties of the `Exam`
+Following shows the interface of the `Exam`
 
 ### Sensory values
 `Exam["left"|"right"]["lightTouch"|"pinPrick"][$level]`

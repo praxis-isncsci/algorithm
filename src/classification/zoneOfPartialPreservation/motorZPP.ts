@@ -321,8 +321,6 @@ export const determineMotorZPP = (side: ExamSide, voluntaryAnalContraction: Bina
       return [...zpp,side.lowestNonKeyMuscleWithMotorFunction].join(',');
     }
 
-    console.log(startingIndex, SensoryLevels.indexOf('S3'))
-
     // start iteration from bottom
     for (let i = startingIndex; i >= 0; i--) {
       if (!result.continue) {

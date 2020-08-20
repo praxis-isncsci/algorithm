@@ -21,7 +21,6 @@ type AfterMotorTest = {
 };
 
 const currentLevel = 'C5';
-const nextLevel = 'C6';
 
 const contains = (test: TestCase, type: 'currentLevel' | 'nextLevel', values: MotorMuscleValue[]): boolean => {
   return values.some(value => test[type] === value);
