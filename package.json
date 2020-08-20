@@ -1,6 +1,6 @@
 {
   "name": "isncsci",
-  "version": "2.0.0-beta",
+  "version": "2.0.0-dev",
   "description": "Algorithm designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA)",
   "main": "./dist/cjs/ISNCSCI.js",
   "module": "./dist/esm/ISNCSCI.js",
