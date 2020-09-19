@@ -37,7 +37,7 @@ export const checkLevelWithMotor = (exam: Exam, level: SensoryLevel, sensoryResu
         checkMotorLevel(exam.left, motorLevel, motorLevel, variable) :
         checkMotorLevel(exam.left, motorLevel, nextMotorLevel, variable);
     const rightMotorResult = level === 'C4' || level === 'L1' ?
-      checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
+      checkMotorLevelBeforeStartOfKeyMuscles(exam.right, level, nextMotorLevel, variable) :
       level === 'T1' || level === 'S1' ?
         checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hot fix
         checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
