@@ -2,7 +2,7 @@ import typescript from '@rollup/plugin-typescript';
 import { terser as minify } from "rollup-plugin-terser";
 
 function config({ output = {}, plugins = [] }) {
-  const dir = `dist/${output.format}`;
+  const dir = `${output.format}`;
   return {
     input: 'src/ISNCSCI.ts',
     output: {
@@ -15,7 +15,7 @@ function config({ output = {}, plugins = [] }) {
     plugins: [
       // resolve(),
       typescript({
-        declaration: output.format === 'cjs',
+        declaration: output.format !== 'iife',
         outDir: dir,
       }),
       ...plugins

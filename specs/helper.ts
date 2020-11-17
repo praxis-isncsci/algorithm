@@ -3,12 +3,12 @@ import { ISNCSCI } from '../src/ISNCSCI';
 
 export interface Test {
   "id": number;
-  "group": string;
+  "group"?: string ;
   "analContraction": string;
   "analSensation": string;
-  "rightLowestNonKeyMuscleWithMotorFunction": string;
-  "leftLowestNonKeyMuscleWithMotorFunction": string;
-  "comments": string;
+  "rightLowestNonKeyMuscleWithMotorFunction"?: string;
+  "leftLowestNonKeyMuscleWithMotorFunction"?: string;
+  "comments"?: string;
   "c2RightTouch": string;
   "c2LeftTouch": string;
   "c2RightPrick": string;

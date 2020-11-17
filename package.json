@@ -1,9 +1,9 @@
 {
   "name": "isncsci",
-  "version": "2.0.0-dev",
+  "version": "2.0.0",
   "description": "Algorithm designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA)",
-  "main": "./dist/cjs/ISNCSCI.js",
-  "module": "./dist/esm/ISNCSCI.js",
+  "main": "./cjs/ISNCSCI.js",
+  "module": "./esm/ISNCSCI.js",
   "scripts": {
     "build": "rollup -c",
     "test": "jest && eslint **/*.ts && cspell **",
@@ -38,7 +38,9 @@
     "typescript": "^4.0.2"
   },
   "files": [
-    "dist"
+    "cjs",
+    "esm",
+    "iife"
   ],
   "jest": {
     "testEnvironment": "node"

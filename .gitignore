@@ -1,3 +1,5 @@
 /coverage
-/dist
+/cjs
+/esm
+/iife
 /node_modules
