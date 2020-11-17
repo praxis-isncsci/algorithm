@@ -44,7 +44,10 @@ const ISNCSCI = require("isncsci").ISNCSCI;
 ```
 
 ## Usage
-TypeScript example
+To get a classification and the totals, you just need pass an `exam` as a parameter while using the `ISNCSCI` constructor.
+[Interface for `exam` parameter](#interfaces) can be found below.
+
+Below is an example in TypeScript:
 ```ts
 // create exam
 let exam: Exam = {
@@ -85,44 +88,90 @@ console.log(result.classification);
 console.log(result.totals);
 ```
 
-## API
-Following shows the interface of the `Exam`
-
-### Sensory values
-`Exam["left"|"right"]["lightTouch"|"pinPrick"][$level]`
+## Interfaces
+Following shows the interfaces associated to `Exam` used for `ISNCSCI` constructor.
 ```ts
-'0' | '1' | '2' |
-'0*' | '1*' |
-'0**' | '1**' |
-'NT' | 'NT*' | 'NT**'
+interface Exam {
+  right: ExamSide;
+  left: ExamSide;
+  voluntaryAnalContraction: BinaryObservation;
+  deepAnalPressure: BinaryObservation;
+}
+
+interface ExamSide {
+  motor: Motor;
+  lightTouch: Sensory;
+  pinPrick: Sensory;
+  lowestNonKeyMuscleWithMotorFunction?: MotorLevel;
+}
+
+interface Motor {
+  C5: MotorMuscleValue;
+  C6: MotorMuscleValue;
+  C7: MotorMuscleValue;
+  C8: MotorMuscleValue;
+  T1: MotorMuscleValue;
+  L2: MotorMuscleValue;
+  L3: MotorMuscleValue;
+  L4: MotorMuscleValue;
+  L5: MotorMuscleValue;
+  S1: MotorMuscleValue;
+}
+
+interface Sensory {
+  C2: SensoryPointValue;
+  C3: SensoryPointValue;
+  C4: SensoryPointValue;
+  C5: SensoryPointValue;
+  C6: SensoryPointValue;
+  C7: SensoryPointValue;
+  C8: SensoryPointValue;
+  T1: SensoryPointValue;
+  T2: SensoryPointValue;
+  T3: SensoryPointValue;
+  T4: SensoryPointValue;
+  T5: SensoryPointValue;
+  T6: SensoryPointValue;
+  T7: SensoryPointValue;
+  T8: SensoryPointValue;
+  T9: SensoryPointValue;
+  T10: SensoryPointValue;
+  T11: SensoryPointValue;
+  T12: SensoryPointValue;
+  L1: SensoryPointValue;
+  L2: SensoryPointValue;
+  L3: SensoryPointValue;
+  L4: SensoryPointValue;
+  L5: SensoryPointValue;
+  S1: SensoryPointValue;
+  S2: SensoryPointValue;
+  S3: SensoryPointValue;
+  S4_5: SensoryPointValue;
+}
 ```
 
-### Motor values
-`Exam["left"|"right"].motor[$level]`
-```ts
-'0' | '1' | '2' | '3' | '4' | '5' |
-'0*' | '1*' | '2*' | '3*' | '4*' |
-'0**' | '1**' | '2**' | '3**' | '4**' |
-'NT' | 'NT*' | 'NT**'
-```
+## Values
+Here lists the valid values for [interfaces](#interfaces) above.
 
-### Deep anal pressure / Voluntary anal contraction
-`Exam["deepAnalPressure"|"voluntaryAnalContraction"]`
+Tagged values represents impairment due to non-SCI injury.
+Single star (`*`) represents `consider not normal` for classification.
+Double star (`**`) represents `consider normal` for classification.
 ```ts
-'Yes' | 'No' | 'NT'
-```
+type BinaryObservation = 'Yes' | 'No' | 'NT';
 
-### Lowest non-key muscle with motor function
-`Exam["left"|"right"].lowestNonKeyMuscleWithMotorFunction`
-```ts
-'C5' | 'C6' | 'C7' | 'C8' | 'T1' |
-'L2' | 'L3' | 'L4' | 'L5' | 'S1'
-```
+type MotorLevel =
+  'C5' | 'C6' | 'C7' | 'C8' | 'T1' |
+  'L2' | 'L3' | 'L4' | 'L5' | 'S1';
 
-### Levels
-```ts
-'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8' |
-'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6' | 'T7' | 'T8' | 'T9' | 'T10' | 'T11' | 'T12' |
-'L1' | 'L2' | 'L3' | 'L4' | 'L5'|
-'S1' | 'S2' | 'S3' | 'S4_5'
+type MotorMuscleValue =
+  '0' | '1' | '2' | '3' | '4' | '5' |
+  '0*' | '1*' | '2*' | '3*' | '4*' |
+  '0**' | '1**' | '2**' | '3**' | '4**' |
+  'NT' | 'NT*' | 'NT**';
+
+type SensoryPointValue =
+  '0' | '1' | '2' |
+  '0*' | '1*' |
+  '0**' | '1**' |
+  'NT' | 'NT*' | 'NT**';
 ```

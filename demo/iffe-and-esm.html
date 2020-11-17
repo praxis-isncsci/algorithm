@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>ISNCSCI Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/mocha@8.2.1/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="https://unpkg.com/chai@4.2.0/chai.js"></script>
+    <script src="https://unpkg.com/mocha@8.2.1/mocha.js"></script>
+    <script>
+      const { expect } = chai;
+      mocha.setup('bdd');
+      mocha.checkLeaks();
+    </script>
+
+    <!-- Import demo data -->
+    <script src="demo-exam-and-result.js"></script>
+
+    <!-- iife test -->
+    <script>
+      const ISNCSCIBeforeIIFE = window.ISNCSCI;
+    </script>
+    <script src="https://unpkg.com/isncsci/iife/ISNCSCI.min.js"></script>
+    <script>
+      it('iife', () => {
+        const result = new ISNCSCI(demoExam);
+        expect(result).to.deep.equal(demoResult);
+        expect(ISNCSCIBeforeIIFE).to.be.undefined;
+        expect(window.ISNCSCI).to.equal(ISNCSCI);
+      })
+    </script>
+
+    <!-- esm default import test -->
+    <script type="module">
+      import ISNCSCI from "https://unpkg.com/isncsci/esm/ISNCSCI.min.js";
+      it('esm default import', () => {
+        const result = new ISNCSCI(demoExam);
+        expect(result).to.deep.equal(demoResult);
+        expect(window.ISNCSCI).to.not.equal(ISNCSCI);
+      })
+    </script>
+
+    <!-- esm named import test -->
+    <script type="module">
+      import { ISNCSCI } from "https://unpkg.com/isncsci/esm/ISNCSCI.min.js";
+      it('esm named import', () => {
+        const result = new ISNCSCI(demoExam);
+        expect(result).to.deep.equal(demoResult);
+        expect(window.ISNCSCI).to.not.equal(ISNCSCI);
+      })
+    </script>
+
+    <script type="module">
+      mocha.run();
+    </script>
+  </body>
+</html>
