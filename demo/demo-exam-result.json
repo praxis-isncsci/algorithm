@@ -1,0 +1,39 @@
+{
+  "classification": {
+    "neurologicalLevels": {
+      "sensoryRight": "INT",
+      "sensoryLeft": "INT",
+      "motorRight": "INT",
+      "motorLeft": "INT"
+    },
+    "neurologicalLevelOfInjury": "INT",
+    "injuryComplete": "I",
+    "ASIAImpairmentScale": "E",
+    "zoneOfPartialPreservations": {
+      "sensoryRight": "NA",
+      "sensoryLeft": "NA",
+      "motorRight": "NA",
+      "motorLeft": "NA"
+    }
+  },
+  "totals": {
+    "left": {
+      "upperExtremity": "25",
+      "lowerExtremity": "25",
+      "lightTouch": "56",
+      "pinPrick": "56",
+      "motor": "50"
+    },
+    "right": {
+      "upperExtremity": "25",
+      "lowerExtremity": "25",
+      "lightTouch": "56",
+      "pinPrick": "56",
+      "motor": "50"
+    },
+    "upperExtremity": "50",
+    "lowerExtremity": "50",
+    "lightTouch": "112",
+    "pinPrick": "112"
+  }
+}
