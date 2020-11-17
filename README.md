@@ -6,14 +6,14 @@ This algorithm is designed to produce a spinal cord injury classification consis
 ```html
 <!-- using IIFE -->
 <!-- defines ISNCSCI on window object -->
-<script src="https://unpkg.com/isncsci/dist/iife/ISNCSCI.min.js"></script>
+<script src="https://unpkg.com/isncsci/iife/ISNCSCI.min.js"></script>
 
 <!-- using ES module -->
 <script type="module">
   // using default import
-  import ISNCSCI from "https://unpkg.com/isncsci/dist/esm/ISNCSCI.min.js"
+  import ISNCSCI from "https://unpkg.com/isncsci/esm/ISNCSCI.min.js"
   // using named import
-  import { ISNCSCI } from "https://unpkg.com/isncsci/dist/esm/ISNCSCI.min.js"
+  import { ISNCSCI } from "https://unpkg.com/isncsci/esm/ISNCSCI.min.js"
 </script>
 ```
 

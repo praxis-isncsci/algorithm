@@ -9,6 +9,7 @@
         "plugin:@typescript-eslint/recommended"
     ],
     "ignorePatterns": [
+        "**/*.d.ts",
         "**/*.js",
         "dist"
     ],
