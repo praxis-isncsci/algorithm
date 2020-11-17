@@ -1,0 +1,5 @@
+/coverage
+/cjs
+/esm
+/iife
+/node_modules

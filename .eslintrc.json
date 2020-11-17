@@ -1,0 +1,28 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "jest": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
+    "ignorePatterns": [
+        "**/*.d.ts",
+        "**/*.js",
+        "dist"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "plugins": ["@typescript-eslint"],
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "sourceType": "module"
+    },
+    "root": true,
+    "rules": {
+        "@typescript-eslint/indent": ["error", 2],
+        "no-multiple-empty-lines": ["error", {"max": 1, "maxEOF": 0}],
+        "no-trailing-spaces": "error"
+    }
+}

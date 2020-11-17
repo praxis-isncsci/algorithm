@@ -1,0 +1,54 @@
+{
+  "name": "isncsci",
+  "version": "2.0.0",
+  "description": "Algorithm designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA)",
+  "main": "./cjs/ISNCSCI.js",
+  "module": "./esm/ISNCSCI.js",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "jest && eslint **/*.ts && cspell **",
+    "test:watch": "jest --watch"
+  },
+  "author": "Praxis Spinal Cord Institute",
+  "license": "Apache-2.0",
+  "homepage": "https://www.isncscialgorithm.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/praxis-isncsci/algorithm.git"
+  },
+  "keywords": [
+    "ISNCSCI",
+    "International Standards for Neurological Classification of Spinal Cord Injury",
+    "ASIA",
+    "American Spinal Injury Association",
+    "spinal cord injury",
+    "algorithm"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^6.0.0",
+    "@types/jest": "^26.0.14",
+    "@typescript-eslint/eslint-plugin": "^4.1.1",
+    "@typescript-eslint/parser": "^4.1.1",
+    "cspell": "^4.1.0",
+    "eslint": "^7.9.0",
+    "husky": "^4.3.0",
+    "jest": "^26.4.2",
+    "rollup": "^2.27.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "ts-jest": "^26.3.0",
+    "typescript": "^4.0.2"
+  },
+  "files": [
+    "cjs",
+    "esm",
+    "iife"
+  ],
+  "jest": {
+    "testEnvironment": "node"
+  },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm test"
+    }
+  }
+}
