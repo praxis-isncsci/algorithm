@@ -1,6 +1,16 @@
 # ISNCSCI Algorithm
 This algorithm is designed to produce a spinal cord injury classification consistent with the International Standards for Neurological Classification of Spinal Cord Injury developed and maintained by the American Spinal Injury Association (ASIA).
 
+# Table of Contents
+- [Import library](#Import-library)
+  - [Using on a browser (unpkg)](#Using-on-a-browser-(unpkg))
+  - [Using in JavaScript projects](#Using-in-JavaScript-projects)
+- [Usage](#Usage)
+- [Interfaces](#Interfaces)
+  - [Values](#Values)
+- [Demo](#Demo)
+
+
 ## Import library
 ### Using on a browser (unpkg)
 ```html
@@ -150,7 +160,7 @@ interface Sensory {
 }
 ```
 
-## Values
+### Values
 Here lists the valid values for [interfaces](#interfaces) above.
 
 Tagged values represents impairment due to non-SCI injury.
@@ -175,3 +185,13 @@ type SensoryPointValue =
   '0**' | '1**' |
   'NT' | 'NT*' | 'NT**';
 ```
+
+## Demo
+Demo files that can be used as examples are found in the `demo` folder.
+
+You run `*.spec.*` tests using `npx jest demo` command.
+You can view the test for `*.html` file by opening it on any modern browser that supports ES modules.
+
+- `demo/cjs.spec.js`: demo using CommonJS syntax
+- `demo/esm.spec.ts`: demo using ES module and TypeScript syntax
+- `demo/iife-and-esm.html`: demo using ES module and IIFE on the browser
