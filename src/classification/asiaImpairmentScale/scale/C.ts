@@ -1,5 +1,7 @@
 import { MotorMuscleValue, SensoryLevel, SensoryLevels, MotorLevels, Exam } from "../../../interfaces";
 import { startingMotorIndex, CheckAISResult } from "../common";
+import { removeStars } from '../../helper';
+import { determineNeurologicalLevelOfInjury } from "../../neurologicalLevelOfInjury/neurologicalLevelOfInjury";
 
 const canHaveMuscleGradeLessThan3 = (value: MotorMuscleValue): boolean  => ['0', '1', '2', 'NT', 'NT*'].includes(value);
 const canHaveVariableMuscleGradeLessThan3 = (value: MotorMuscleValue): boolean  => ['0*', '1*', '2*'].includes(value);
@@ -51,9 +53,12 @@ const canHaveLessThanHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3 = (
 }
 
 export const checkASIAImpairmentScaleC = (exam: Exam, neurologicalLevelOfInjury: string, canBeMotorIncompleteResult: CheckAISResult): 'C' | 'C*' | undefined  => {
+  const examWithStarsRemoved = removeStars(exam);
+  const nliWithStarsRemoved  = determineNeurologicalLevelOfInjury(examWithStarsRemoved);
+  const motorFunctionCWithStarsRemoved = canHaveLessThanHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3(examWithStarsRemoved, nliWithStarsRemoved);
   const motorFunctionC = canHaveLessThanHalfOfKeyMuscleFunctionsBelowNLIHaveMuscleGradeAtLeast3(exam, neurologicalLevelOfInjury);
   if (motorFunctionC.result) {
-    if (motorFunctionC.variable || canBeMotorIncompleteResult.variable) {
+    if (motorFunctionC.variable || canBeMotorIncompleteResult.variable || !motorFunctionCWithStarsRemoved.result) {
       return 'C*';
     } else {
       return 'C';
