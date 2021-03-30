@@ -1,4 +1,4 @@
-import { ISNCSCI, Exam } from "isncsci";
+import { ISNCSCI, Exam } from "../";
 import exam from './demo-exam.json';
 import demoResult from './demo-exam-result.json';
 
