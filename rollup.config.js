@@ -4,7 +4,8 @@ import { terser as minify } from "rollup-plugin-terser";
 function config({ output = {}, plugins = [] }) {
   const dir = `${output.format}`;
   return {
-    input: 'src/ISNCSCI.ts',
+    // input: 'src/ISNCSCI.ts',
+    input: 'src/index.ts',
     output: {
       dir,
       extend: output.format === 'iife',

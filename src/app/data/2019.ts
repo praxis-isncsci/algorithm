@@ -1,4 +1,4 @@
-[
+export default [
   {
     "id": 1,
     "group": "Instep",
@@ -5501,7 +5501,7 @@
     "group": "NtCases",
     "analContraction": "No",
     "analSensation": "No",
-    "comments": "ISNCSCI NT Case 3\nCast (L) wrist\/hand",
+    "comments": "ISNCSCI NT Case 3\nCast (L) wrist/hand",
     "c2RightTouch": "2",
     "c2LeftTouch": "2",
     "c2RightPrick": "2",
@@ -8496,7 +8496,7 @@
     "group": "NtCases",
     "analContraction": "No",
     "analSensation": "Yes",
-    "comments": "ISNCSCI NT Case 22:\nThis case is being reviewed to determine if a form will all intact and no for VAC and\/or DAP should be E or something else.",
+    "comments": "ISNCSCI NT Case 22:\nThis case is being reviewed to determine if a form will all intact and no for VAC and/or DAP should be E or something else.",
     "c2RightTouch": "NT",
     "c2LeftTouch": "NT",
     "c2RightPrick": "NT",
