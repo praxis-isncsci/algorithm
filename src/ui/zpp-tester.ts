@@ -90,7 +90,7 @@ export class ZPPTester extends HTMLElement {
     const levels = motorLevel.split(/,\s*/);
 
     levels.forEach(level => {
-      const levelHeader = this.shadowRoot?.querySelector(`[${level.toLowerCase()}]`);
+      const levelHeader = this.shadowRoot?.querySelector(`[${level.toLowerCase().replace(/\*/g, '')}]`);
 
       if (!levelHeader) {
         return;

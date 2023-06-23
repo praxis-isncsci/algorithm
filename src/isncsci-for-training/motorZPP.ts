@@ -74,13 +74,31 @@ type Step = {
   state: State;
 }
 
+function hasStarOnCurrentOrAboveLevel(level: SideLevel): boolean {
+  let currentLevel: SideLevel | null = level;
+
+  do {
+    if (currentLevel.motor && /\*$/.test(currentLevel.motor)) {
+      return true;
+    }
+
+    if (!currentLevel.motor && (/\*$/.test(currentLevel.lightTouch) || /\*$/.test(currentLevel.pinPrick))) {
+      return true;
+    }
+
+    currentLevel = currentLevel.previous;
+  } while(currentLevel)
+
+  return false;
+}
+
 function checkForSensoryFunction(state: State): Step {
   if (!state.currentLevel) {
     throw new Error('checkForMotorFunction :: state.currentLevel is null. A SideLevel value is required.');
   }
 
   const currentLevel = state.currentLevel;
-  const description = `Check for sensory function on ${currentLevel.name}`;
+  const description = `Check for sensory function on ${currentLevel.name} (LT: ${currentLevel.lightTouch} - PP: ${currentLevel.pinPrick}))`;
 
   if (state.motorLevel.includes(currentLevel.name)) {
     return (currentLevel.lightTouch === '2' && currentLevel.pinPrick === '2')
@@ -126,14 +144,35 @@ function checkForMotorFunction(state: State): Step {
     throw new Error('checkForMotorFunction :: state.currentLevel.motor is null.');
   }
 
-  const description = `Check for motor function on ${currentLevel.name}.`;
+  const description = `Check for motor function on ${currentLevel.name}: ${currentLevel.motor}.`;
+  const isTopRangeLevel = currentLevel.name === state.topLevel.name;
 
-  if (['1', '2', '3', '4', '5'].includes(currentLevel.motor)) {
+  // ToDo: this is checking the current level but neds to check this and all motor levels above
+
+  // This will skip 0*, which needs to be handled individually
+  if (/^[1-5]/.test(currentLevel.motor) || /^(NT|[0-4])\*\*$/.test(currentLevel.motor)) {
+    const hasStar = hasStarOnCurrentOrAboveLevel(currentLevel);
+
     return {
       description,
-      action: `Motor function was found (${currentLevel.motor}). We can stop.`,
-      state: {...state, zpp: [...state.zpp, currentLevel.name]},
+      action: 'Motor function was found. We include the level in Motor ZPP and stop.',
+      state: {...state, zpp: [...state.zpp, `${currentLevel.name}${hasStar ? '*' : ''}`]},
       next:  null,
+    };
+  }
+
+  if (/^(NT\*?$)|(0\*$)/.test(currentLevel.motor)) {
+    const hasStar = hasStarOnCurrentOrAboveLevel(currentLevel);
+
+    return {
+      description,
+      action: `
+        Motor function marked as not normal was found. We include the level in Motor ZPP and continue.
+        ${isTopRangeLevel ? 'Because we have reached the top level in our range, we stop.' : 'Since we have not reached the top level of our range, we continue'}
+        ${hasStar ? 'Since motor has a star on this level or above, we add a star to the result.' : ''}
+        `,
+      state: {...state, zpp: [...state.zpp, `${currentLevel.name}${hasStar ? '*' : ''}`]},
+      next:  isTopRangeLevel ? null : checkLevel,
     };
   }
 
@@ -163,17 +202,26 @@ function checkLevel(state: State): Step {
 function getTopAndBottomLevelsForCheck(state: State): Step {
   const motorLevels = state.motorLevel.split(',');
   const top = motorLevels[0] as SensoryLevel;
-  const includeSensoryLevels = state.motorLevel.includes('T1');
-  const bottom = state.motorLevel.includes('S1')
+
+  // We exclude not normal T1 values as there would be no propagation for that case
+  const includeThoracicandLumbarSensoryLevels = /(T1(,|$))|(T1\*\*(,|$))/.test(state.motorLevel);
+
+  // We exclude not normal S1 values as there would be no propagation for that case
+  const motorIncludesS1 = /(S1(,|$))|(S1\*\*(,|$))/.test(state.motorLevel);
+  const bottom = motorIncludesS1
     ? motorLevels[motorLevels.length - 1] as SensoryLevel
     : 'S1';
 
   // const {topLevel, bottomLevel} = initializeSideLevels(state.side, top, bottom);
-  const {topLevel, bottomLevel} = getLevelsRange(state.side, top, bottom, includeSensoryLevels);
+  const {topLevel, bottomLevel} = getLevelsRange(state.side, top, bottom, includeThoracicandLumbarSensoryLevels);
 
   return {
-    description: 'Using the Motor Levels, look for the top and bottom levels to examine. We will move from bottom to top using that range. When motor level includes ',
-    action: `Our search range will be between ${bottomLevel.name} (bottom) and ${topLevel.name} (top)`,
+    description: 'Using the Motor Levels, look for the top and bottom levels to examine. We will move from bottom to top using that range.',
+    action: `
+      Our search range will be between ${bottomLevel.name} (bottom) and ${topLevel.name} (top).
+      ${includeThoracicandLumbarSensoryLevels ? 'Since T1 is a normal Motor Level, we include thoracic and lumbar dermatomes in our test.' : 'Since T1 is not a normal Motor Level, we do not include thoracic and lumbar dermatomes in our test.'}
+      ${includeThoracicandLumbarSensoryLevels && motorIncludesS1 ? 'Since S1 is a normal Motor Level, the bottom of our range is determined by the lowest Motor Level.' : 'Since S1 is not a normal Motor Level, we make S1 the bottom of our range.'}
+    `,
     state: {...state, topLevel, bottomLevel, currentLevel: bottomLevel},
     next: checkLevel,
   };

@@ -1,6 +1,5 @@
 import ISNCSCI from "../ISNCSCI";
 import {Exam, MotorLevel, SensoryLevels} from "../interfaces";
-import {determineMotorZPP} from "../isncsci-for-training/motorZPP";
 
 import testCases from './data/2019';
 
@@ -39,7 +38,7 @@ export class App {
   }
 
   public run(): void {
-    const exam: Exam = getExam(1, testCases);
+    const exam: Exam = getExam(121, testCases);
     const isncsci = new ISNCSCI(exam);
 
     console.log(isncsci.classification.neurologicalLevels);
