@@ -1,6 +1,6 @@
 import { BinaryObservation, ExamSide, MotorMuscleValue, MotorLevel, MotorLevels, SensoryPointValue, SensoryLevel, SensoryLevels } from '../interfaces';
 
-type SideLevel = {
+export type SideLevel = {
   name: SensoryLevel;
   lightTouch: SensoryPointValue;
   pinPrick: SensoryPointValue;
@@ -8,6 +8,23 @@ type SideLevel = {
   ordinal: number;
   next: SideLevel | null;
   previous: SideLevel | null;
+}
+
+export type State = {
+  motorLevel: string,
+  voluntaryAnalContraction: BinaryObservation,
+  zpp: string[],
+  topLevel: SideLevel,
+  bottomLevel: SideLevel,
+  currentLevel: SideLevel | null,
+  side: ExamSide,
+}
+
+export type Step = {
+  description: string;
+  action: string;
+  next: ((state: State) => Step) | null;
+  state: State;
 }
 
 function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel, includeSensoryLevels: boolean): {topLevel: SideLevel, bottomLevel: SideLevel} {
@@ -57,22 +74,6 @@ function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel,
 }
 
 /* *********************************************************** */
-type State = {
-  motorLevel: string,
-  voluntaryAnalContraction: BinaryObservation,
-  zpp: string[],
-  topLevel: SideLevel,
-  bottomLevel: SideLevel,
-  currentLevel: SideLevel | null,
-  side: ExamSide,
-}
-
-type Step = {
-  description: string;
-  action: string;
-  next: ((state: State) => Step) | null;
-  state: State;
-}
 
 function hasStarOnCurrentOrAboveLevel(level: SideLevel): boolean {
   let currentLevel: SideLevel | null = level;
@@ -227,7 +228,7 @@ function getTopAndBottomLevelsForCheck(state: State): Step {
   };
 }
 
-function startCheckIfMotorZPPIsApplicable(state: State): Step {
+export function startCheckIfMotorZPPIsApplicable(state: State): Step {
   const description = 'Check if there is voluntary anal contraction (VAC)';
 
   if (state.voluntaryAnalContraction === 'Yes') {

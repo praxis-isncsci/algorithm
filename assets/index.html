@@ -26,19 +26,62 @@
 
       .exam {
         display: flex;
+        flex-direction: row;
+      }
+
+      .exam .inputs {
+        flex-grow: 1;
+      }
+
+      .exam .inputs .grid {
+        display: flex;
       }
 
       .exam zpp-tester {
         margin: 40px auto;
         max-width: 600px;
       }
+
+      .exam .steps {
+        background-color: rgba(0, 0, 0, 0.05);
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        line-height: 16px;
+        max-width: 500px;
+        min-width: 300px;
+      }
+
+      .exam .steps li {
+        margin-bottom: 16px;
+      }
+
+      .exam .steps .description {
+        color: #666;
+        margin-bottom: 8px
+      }
+
+      .exam .steps .motor-zpp {
+        margin-top: 8px;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
     <h2>ISNCSCI</h2>
     <section class="exam">
-      <zpp-tester right></zpp-tester>
-      <zpp-tester left></zpp-tester>
+      <div class="inputs">
+        <div>
+          <div>Lowest right non-key muscles with motor function: <span right-non-key-muscle></span></div>
+          <div>Lowest left non-key muscles with motor function: <span left-non-key-muscle></span></div>
+          <div>VAC: <span vac></span></div>
+          <div>DAP: <span dap></span></div>
+        </div>
+        <div class="grid">
+          <zpp-tester right></zpp-tester>
+          <zpp-tester left></zpp-tester>
+        </div>
+      </div>
+      <div class="steps" steps></div>
     </section>
     <script>
       /**
@@ -91,8 +134,20 @@
     <script type="module">
       import {App} from '../esm/ISNCSCI.js';
 
+      const searchParams = new URLSearchParams(window.location.search);
+      const examId = parseInt(searchParams.get('exam_id'));
       const app = new App();
-      app.run();
+      app.run(isNaN(examId) ? 1 : examId);
+
+      function nextStep() {
+        const state = app.executeNextStep();
+      }
+
+      window.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+         nextStep();
+        }
+      });
     </script>
   </body>
 </html>

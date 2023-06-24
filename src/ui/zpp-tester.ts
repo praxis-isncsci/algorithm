@@ -6,7 +6,7 @@ export class ZPPTester extends HTMLElement {
   }
 
   public static get observedAttributes(): string[] {
-    const attributes: string[] = ['left', 'motor-level'];
+    const attributes: string[] = ['left', 'motor-level', 'current-level'];
 
     SensoryLevels.forEach((level) => {
       if (level === 'C1') {
@@ -60,8 +60,14 @@ export class ZPPTester extends HTMLElement {
       .motor-level ~ .motor-level {
         background-color: rgba(255, 226, 0, 0.5);
       }
+
+      .current {
+        background-color: rgba(255, 0, 0, 0.5);
+      }
     </style>
   `;
+
+  private currentLevel: HTMLElement | null | undefined = null;
 
   public constructor() {
     super();
@@ -100,6 +106,22 @@ export class ZPPTester extends HTMLElement {
     });
   }
 
+  private setCurrentLevel(levelName: string): void {
+    if (this.currentLevel) {
+      this.currentLevel.classList.remove('current');
+    }
+
+    try {
+      this.currentLevel = this.shadowRoot?.querySelector(`[${levelName.toLowerCase()}]`);
+    } catch(error) {
+      this.currentLevel = null;
+    }
+
+    if (this.currentLevel) {
+      this.currentLevel.classList.add('current');
+    }
+  }
+
   public attributeChangedCallback(
     name: string,
     oldValue: string,
@@ -111,6 +133,11 @@ export class ZPPTester extends HTMLElement {
 
     if (name === 'motor-level') {
       this.highlightMotorLevel(newValue);
+      return;
+    }
+
+    if (name === 'current-level') {
+      this.setCurrentLevel(newValue);
       return;
     }
 
