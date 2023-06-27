@@ -123,8 +123,8 @@ export class App {
 
       this.steps.appendChild(stepElement);
 
-      const currentLevelName: string = this.currentStep.state.currentLevel ? this.currentStep.state.currentLevel.name : '';
-      this.zppTesterRight?.setAttribute('current-level',  currentLevelName);
+      const currentLevel = this.currentStep.state.currentLevel;
+      this.zppTesterRight?.setAttribute('current-level',  currentLevel?.next ? currentLevel.next.name : '');
 
       if (this.currentStep.next) {
         return this.currentStep.state;
