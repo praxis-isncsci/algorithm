@@ -184,20 +184,17 @@ function checkForSensoryFunction(state: State): Step {
 
   const currentLevel = state.currentLevel;
   const description = `Check for sensory function on ${currentLevel.name} (LT: ${currentLevel.lightTouch} - PP: ${currentLevel.pinPrick}))`;
+  const isTopRange = currentLevel.name === state.topLevel.name;
 
   if (state.motorLevel.includes(currentLevel.name)) {
     const hasStar = hasStarOnCurrentOrAboveLevel(state.side, currentLevel.name);
     const motorZPPName = `${currentLevel.name}${hasStar ? '*' : ''}`;
     const overrideWithNonKeyMuscle = state.testNonKeyMuscle && state.nonKeyMuscle !== null && state.nonKeyMuscle.index - currentLevel.index > 3;
-    const hasNormalSensoryValues = currentLevel.lightTouch === '2' && currentLevel.pinPrick === '2';
-    let action = hasNormalSensoryValues
-      ? `${currentLevel.name} is included in motor values and both pin prick and light touch equal 2. We add it to Motor ZPP and stop iterating.`
-      : `${currentLevel.name} is included in motor values. We add it to Motor ZPP and continue checking.`;
-    const next = hasNormalSensoryValues ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel;
-
-    if (overrideWithNonKeyMuscle) {
-      action += '\nThe value, however is overriden by the non-key muscle'
-    }
+    const action = `
+      ${currentLevel.name} is included in motor values.
+      ${overrideWithNonKeyMuscle ? 'The value, however is overriden by the non-key muscle' : 'We add it to Motor ZPP and continue checking.'}
+      ${isTopRange ? 'We are a the top of the range, we stop.' : ''}
+    `;
 
     return {
       description,
@@ -208,25 +205,23 @@ function checkForSensoryFunction(state: State): Step {
         currentLevel: currentLevel.previous,
         addNonKeyMuscle: state.addNonKeyMuscle || overrideWithNonKeyMuscle,
       },
-      next,
+      next: isTopRange ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel,
     };
   }
 
-  if (currentLevel.name === state.topLevel.name) {
-    return {
+  return isTopRange
+    ? {
       description,
       action: 'We reached the top of the searchable range. We stop iterating.',
       state: {...state, zpp: [...state.zpp]},
       next:  addLowerNonKeyMuscleToMotorZPPIfNeeded,
+    }
+    : {
+      description,
+      action: 'No sensory function was found. We continue.',
+      state: {...state, zpp: [...state.zpp], currentLevel: currentLevel.previous},
+      next:  checkLevel,
     };
-  }
-
-  return {
-    description,
-    action: 'No sensory function was found. We continue.',
-    state: {...state, zpp: [...state.zpp], currentLevel: currentLevel.previous},
-    next:  checkLevel,
-  };
 }
 
 function checkForMotorFunction(state: State): Step {
@@ -345,7 +340,7 @@ function getTopAndBottomLevelsForCheck(state: State): Step {
   const motorIncludesS1OrLower = /((S1|S2|S3)(,|$))|((S1|S2|S3)\*\*(,|$))/.test(state.motorLevel);
   const lowestMotorLevel = motorLevels[motorLevels.length - 1];
   const bottom = motorIncludesS1OrLower
-    ? lowestMotorLevel === 'INT' ? 'S4_5' : lowestMotorLevel as SensoryLevel
+    ? lowestMotorLevel === 'INT' ? 'S3' : lowestMotorLevel as SensoryLevel
     : 'S1';
 
   // const {topLevel, bottomLevel} = initializeSideLevels(state.side, top, bottom);
