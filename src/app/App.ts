@@ -51,7 +51,7 @@ export class App {
       lightTouch: '2',
       pinPrick: '2',
       motor: null,
-      ordinal: 0,
+      index: 0,
       next: null,
       previous: null,
     };
@@ -60,6 +60,7 @@ export class App {
       description: 'Start',
       action: '',
       state: {
+        ais: isncsci.classification.ASIAImpairmentScale,
         motorLevel: isncsci.classification.neurologicalLevels.motorRight,
         voluntaryAnalContraction: exam.voluntaryAnalContraction,
         zpp: [],
@@ -67,6 +68,10 @@ export class App {
         bottomLevel: c1,
         currentLevel: null,
         side: exam.right,
+        nonKeyMuscle: null,
+        nonKeyMuscleHasBeenAdded: false,
+        testNonKeyMuscle: false,
+        addNonKeyMuscle: false,
       },
       next: startCheckIfMotorZPPIsApplicable,
     };
