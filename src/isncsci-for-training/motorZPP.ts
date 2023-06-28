@@ -80,26 +80,26 @@ function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel,
 
 /* *********************************************************** */
 
-function hasStarOnCurrentOrAboveLevel(side: ExamSide, levelName: string): boolean {
-
-  const sensoryLevelsLength = SensoryLevels.length;
-
+function hasStarOnCurrentOrAboveLevel(side: ExamSide, levelName: SensoryLevel): boolean {
   let currentLevelName: SensoryLevel = 'C1';
+  const levelIndex = SensoryLevels.indexOf(levelName);
 
-  for (let i = 1; i < sensoryLevelsLength && currentLevelName !== levelName; i++) {
+  for (let i = 1; i <= levelIndex; i++) {
     currentLevelName = SensoryLevels[i];
 
     if (currentLevelName === 'C1') {
       continue;
     }
 
+    // 0**', '1**', 'NT**
+    if (/^(0|1|NT)\*\*$/.test(side.lightTouch[currentLevelName]) || /^(0|1|NT)\*\*$/.test(side.pinPrick[currentLevelName])) {
+      return true;
+    }
+
     const motorLevelName: MotorLevel | null = MotorLevels.includes(currentLevelName as MotorLevel) ? currentLevelName as MotorLevel : null;
 
-    if (motorLevelName) {
-      if (/\*$/.test(side.motor[motorLevelName])) {
-        return true;
-      }
-    } else if(/\*$/.test(side.lightTouch[currentLevelName]) && /\*$/.test(side.pinPrick[currentLevelName])) {
+    // ['0*','0**']
+    if (motorLevelName && /^(0\*$|0\*\*$)/.test(side.motor[motorLevelName])) {
       return true;
     }
   }
@@ -168,26 +168,37 @@ function checkForSensoryFunction(state: State): Step {
   const description = `Check for sensory function on ${currentLevel.name} (LT: ${currentLevel.lightTouch} - PP: ${currentLevel.pinPrick}))`;
 
   if (state.motorLevel.includes(currentLevel.name)) {
-    return (currentLevel.lightTouch === '2' && currentLevel.pinPrick === '2')
-      ? {
-        description,
-        action: `${currentLevel.name} is included in motor values and both pin prick and light touch equal 2. We add it to Motor ZPP and stop iterating.`,
-        state: {...state, zpp: [currentLevel.name, ...state.zpp], currentLevel: currentLevel.previous},
-        next:  addLowerNonKeyMuscleToMotorZPPIfNeeded,
-      }
-      : {
-        description,
-        action: `${currentLevel.name} is included in motor values. We add it to Motor ZPP and continue checking.`,
-        state: {...state, currentLevel: currentLevel.previous, zpp: [currentLevel.name, ...state.zpp]},
-        next:  checkLevel,
-      };
+    const hasStar = hasStarOnCurrentOrAboveLevel(state.side, currentLevel.name);
+    const motorZPPName = `${currentLevel.name}${hasStar ? '*' : ''}`;
+    const overrideWithNonKeyMuscle = state.testNonKeyMuscle && state.nonKeyMuscle !== null && state.nonKeyMuscle.index - currentLevel.index > 3;
+    const hasNormalSensoryValues = currentLevel.lightTouch === '2' && currentLevel.pinPrick === '2';
+    let action = hasNormalSensoryValues
+      ? `${currentLevel.name} is included in motor values and both pin prick and light touch equal 2. We add it to Motor ZPP and stop iterating.`
+      : `${currentLevel.name} is included in motor values. We add it to Motor ZPP and continue checking.`;
+    const next = hasNormalSensoryValues ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel;
+
+    if (overrideWithNonKeyMuscle) {
+      action += '\nThe value, however is overriden by the non-key muscle'
+    }
+
+    return {
+      description,
+      action,
+      state: {
+        ...state,
+        zpp: overrideWithNonKeyMuscle ? [...state.zpp] : [motorZPPName, ...state.zpp],
+        currentLevel: currentLevel.previous,
+        addNonKeyMuscle: state.addNonKeyMuscle || overrideWithNonKeyMuscle,
+      },
+      next,
+    };
   }
 
   if (currentLevel.name === state.topLevel.name) {
     return {
       description,
       action: 'We reached the top of the searchable range. We stop iterating.',
-      state: {...state, currentLevel: currentLevel.previous},
+      state: {...state, zpp: [...state.zpp]},
       next:  addLowerNonKeyMuscleToMotorZPPIfNeeded,
     };
   }
@@ -195,7 +206,7 @@ function checkForSensoryFunction(state: State): Step {
   return {
     description,
     action: 'No sensory function was found. We continue.',
-    state: {...state, currentLevel: currentLevel.previous},
+    state: {...state, zpp: [...state.zpp], currentLevel: currentLevel.previous},
     next:  checkLevel,
   };
 }

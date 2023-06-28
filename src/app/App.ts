@@ -97,7 +97,7 @@ export class App {
     this.updateValues(exam.right, isncsci.classification.neurologicalLevels.motorRight, this.zppTesterRight);
     this.updateValues(exam.left, isncsci.classification.neurologicalLevels.motorLeft, zppTesterLeft as HTMLElement);
     vac.textContent = exam.voluntaryAnalContraction;
-    dap.textContent = exam.voluntaryAnalContraction;
+    dap.textContent = exam.deepAnalPressure;
     rightNonKeyMuscle.textContent = exam.right.lowestNonKeyMuscleWithMotorFunction ?? '';
     leftNonKeyMuscle.textContent = exam.left.lowestNonKeyMuscleWithMotorFunction ?? '';
   }
