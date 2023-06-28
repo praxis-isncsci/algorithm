@@ -135,6 +135,24 @@ function checkLowerNonKeyMuscle(state: State): Step {
     };
 }
 
+function sortMotorZPP(state: State): Step {
+  const zpp = state.zpp.sort((a, b) => {
+    const aIndex = a === 'NA' ? -1 : SensoryLevels.indexOf(a.replace(/\*/, '') as SensoryLevel);
+    const bIndex = b === 'NA' ? -1 : SensoryLevels.indexOf(b.replace(/\*/, '') as SensoryLevel);
+    return aIndex - bIndex;
+  });
+
+  return {
+    description: 'Sort Motor ZPP',
+    action: 'Ensure "NA" is placed first',
+    state: {
+      ...state,
+      zpp,
+    },
+    next: null,
+  }
+}
+
 function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
   const description = 'If the non-key muscle affects the AIS calculations, we add it to Motor ZPP.';
 
@@ -146,7 +164,7 @@ function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
         ...state,
         zpp: [...state.zpp, state.nonKeyMuscle.name],
       },
-      next: null,
+      next: sortMotorZPP,
     }
     : {
       description,
@@ -155,7 +173,7 @@ function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
         ...state,
         zpp: [...state.zpp],
       },
-      next: null,
+      next: sortMotorZPP,
     };
 }
 
@@ -421,6 +439,8 @@ export function determineMotorZPP(side: ExamSide, voluntaryAnalContraction: Bina
 
   while (step.next) {
     step = step.next(step.state);
+
+    // ToDo: Add logger
     // console.log(step.description);
     // console.log(step.action);
   }
