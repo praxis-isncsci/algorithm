@@ -3,7 +3,9 @@ import { Test, mapExam } from './helper';
 
 describe('Isncsci Algorithm rev2019 ::', () => {
   testCases
-    // .filter(t => t.id === 104) // for debugging specific test case
+    // .filter(t => t.id >= 1 && t.id < 120) // for debugging specific test case
+    // .filter(t => t.id === 121) // for debugging specific test case
+    // .filter(t => [54, 34, 112, 84].includes(t.id)) // for debugging specific test case
     .forEach((testCase) => {
       describe(`Test case ${testCase.id}`, () => {
         const exam = mapExam(testCase as Test);

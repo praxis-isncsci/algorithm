@@ -1,0 +1,154 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes"
+    />
+    <link rel="canonical" href="http://www.eddiemachete.com/" />
+    <meta name="description" content="This is a list of projects I currently developing or I am being part of as a collaborator or contributor. I am always in the search of new, interesting projects to be part of." />
+    <meta property="og:title" content="Latest personal projects and collaborations by Eduardo Echeverria" />
+    <meta property="og:url" content="http://www.eddiemachete.com/" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:locale" content="en_US"/>
+    <meta property="og:description" content="This is a list of projects I currently developing or I am being part of as a collaborator or contributor. I am always in the search of new, interesting projects to be part of."/>
+    <meta property="og:image" content="http://www.eddiemachete.com/Content/Images/eddie-machete-1.jpg" />
+    <meta property="og:site_name" content="Eduardo Echeverria"/>
+    <title>Eduardo Echeverria :: UX Engineer Portfolio</title>
+
+    <!-- Add any global styles for body, document, etc. -->
+    <style>
+      body {
+        font-family: var(--theme-font-family, 'Segoe UI',Arial, sans-serif);
+      }
+
+      .exam {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .exam .inputs {
+        flex-grow: 1;
+      }
+
+      .exam .inputs .grid {
+        display: flex;
+      }
+
+      .exam zpp-tester {
+        margin: 40px auto;
+        max-width: 600px;
+      }
+
+      .exam .steps {
+        background-color: rgba(0, 0, 0, 0.05);
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        font-size: 14px;
+        line-height: 16px;
+        max-width: 500px;
+        min-width: 300px;
+        padding: 32px;
+      }
+
+      .exam .steps li {
+        margin-bottom: 16px;
+      }
+
+      .exam .steps .description {
+        color: #666;
+        margin-bottom: 8px
+      }
+
+      .exam .steps .motor-zpp {
+        margin-top: 8px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>ISNCSCI</h2>
+    <section class="exam">
+      <div class="inputs">
+        <div>
+          <div>Lowest right non-key muscles with motor function: <span right-non-key-muscle></span></div>
+          <div>Lowest left non-key muscles with motor function: <span left-non-key-muscle></span></div>
+          <div>VAC: <span vac></span></div>
+          <div>DAP: <span dap></span></div>
+        </div>
+        <div class="grid">
+          <zpp-tester right></zpp-tester>
+          <zpp-tester left></zpp-tester>
+        </div>
+      </div>
+      <div class="steps" steps></div>
+    </section>
+    <script>
+      /**
+       * @license
+       * Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+       * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+       * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+       * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+       * Code distributed by Google as part of the polymer project is also
+       * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+       */
+
+      /**
+       * This shim allows elements written in, or compiled to, ES5 to work on native
+       * implementations of Custom Elements v1. It sets new.target to the value of
+       * this.constructor so that the native HTMLElement constructor can access the
+       * current under-construction element's definition.
+       */
+      (function() {
+        if (
+          // No Reflect, no classes, no need for shim because native custom elements
+          // require ES2015 classes or Reflect.
+          window.Reflect === undefined ||
+          window.customElements === undefined ||
+          // The webcomponentsjs custom elements polyfill doesn't require
+          // ES2015-compatible construction (`super()` or `Reflect.construct`).
+          window.customElements.polyfillWrapFlushCallback
+        ) {
+          return;
+        }
+        const BuiltInHTMLElement = HTMLElement;
+        /**
+         * With jscompiler's RECOMMENDED_FLAGS the function name will be optimized away.
+         * However, if we declare the function as a property on an object literal, and
+         * use quotes for the property name, then closure will leave that much intact,
+         * which is enough for the JS VM to correctly set Function.prototype.name.
+         */
+        const wrapperForTheName = {
+          'HTMLElement': /** @this {!Object} */ function HTMLElement() {
+            return Reflect.construct(
+                BuiltInHTMLElement, [], /** @type {!Function} */ (this.constructor));
+          }
+        };
+        window.HTMLElement = wrapperForTheName['HTMLElement'];
+        HTMLElement.prototype = BuiltInHTMLElement.prototype;
+        HTMLElement.prototype.constructor = HTMLElement;
+        Object.setPrototypeOf(HTMLElement, BuiltInHTMLElement);
+      })();
+    </script>
+    <script type="module">
+      import {App} from '../esm/ISNCSCI.js';
+
+      const searchParams = new URLSearchParams(window.location.search);
+      const examId = parseInt(searchParams.get('exam_id'));
+      const app = new App();
+      app.run(isNaN(examId) ? 1 : examId);
+
+      function nextStep() {
+        const state = app.executeNextStep();
+      }
+
+      window.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+         nextStep();
+        }
+      });
+    </script>
+  </body>
+</html>
