@@ -1,24 +1,33 @@
-import { determineMotorZPP, checkLevelForMotorZPP, checkLevelForMotorZPPOnSensory } from "./motorZPP"
-import { BinaryObservation, ExamSide, MotorMuscleValue, MotorLevels, SensoryPointValue } from "../../interfaces";
-import { newNormalSide, newEmptySide } from "../commonSpec";
+import {
+  State,
+  checkIfMotorZPPIsApplicable,
+  checkLevel,
+  checkLowerNonKeyMuscle,
+  determineMotorZPP,
+  getInitialState,
+  getTopAndBottomLevelsForCheck,
+} from "./motorZPP"
+import {BinaryObservation, Exam, ExamSide, Motor, MotorLevel, Sensory, SensoryLevel, SensoryPointValue} from "../../interfaces";
+import {newNormalSide, propagateMotorValueFrom, propagateSensoryValueFrom} from "../commonSpec";
+import { SideLevel } from "../common";
 
 let side: ExamSide = newNormalSide();
 
-// 439 tests + 4 verification tests
 describe('motorZPP', () => {
   // 300 tests + 1 verification test
   describe('determineMotorZPP with variable VAC and PP/LT at S4_5', () => {
-    const allValues: {voluntaryAnalContraction: BinaryObservation ; pinPrick: SensoryPointValue; lightTouch: SensoryPointValue}[] = [];
+    const allValues: {voluntaryAnalContraction: BinaryObservation; pinPrick: SensoryPointValue; lightTouch: SensoryPointValue;}[] = [];
 
     beforeEach(() => {
       side = newNormalSide();
-    })
+    });
+
     // 100 tests
     describe('VAC = NT', () => {
       const voluntaryAnalContraction = 'NT';
       afterEach(() => {
         allValues.push({voluntaryAnalContraction, pinPrick: side.pinPrick.S4_5, lightTouch: side.lightTouch.S4_5});
-      })
+      });
       const values: SensoryPointValue[] = ['0', '0*', 'NT*', '1', '2', '1*', '0**', '1**', 'NT', 'NT**'];
 
       // 100 tests
@@ -27,12 +36,12 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
+            const result = determineMotorZPP(side, voluntaryAnalContraction, 'E', 'S3');
             expect(result).toContain('NA');
           })
         }
       }
-    })
+    });
 
     // 100 tests
     describe('VAC = No', () => {
@@ -48,12 +57,12 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
+            const result = determineMotorZPP(side, voluntaryAnalContraction, 'E', 'S3');
             expect(result).not.toContain('NA');
           })
         }
       }
-    })
+    });
 
     // 100 tests
     describe('VAC = Yes', () => {
@@ -68,12 +77,12 @@ describe('motorZPP', () => {
           it(`pinPrick.S4_5 = ${x}; lightTouch.S4_5 = ${y};`, () => {
             side.pinPrick.S4_5 = x;
             side.lightTouch.S4_5 = y;
-            const result = determineMotorZPP(side, voluntaryAnalContraction, '');
+            const result = determineMotorZPP(side, voluntaryAnalContraction, 'E', 'S3');
             expect(result).toContain('NA');
           })
         }
       }
-    })
+    });
 
     it('check all tests are unique', () => {
       const hashSet = new Set(allValues.map(v => v.voluntaryAnalContraction + v.pinPrick + v.lightTouch));
@@ -82,278 +91,327 @@ describe('motorZPP', () => {
     })
   })
 
-  // 19 + 1 verification test
-  describe(`checkLevelForMotorZPP: using currentLevel = L5`, () => {
-    const allValues: MotorMuscleValue[] = [];
-    const currentLevel = 'L5';
+  /* *************************************** */
+  /*  checkIfMotorZPPIsApplicable tests      */
+  /* *************************************** */
 
-    afterEach(() => {
-      allValues.push(side.motor[currentLevel]);
-    })
-    const continueValues: MotorMuscleValue[] = ['0'];
-    const continueWithLevelValues: MotorMuscleValue[] = ['NT*', 'NT'];
-    const breakWithLevelValues: MotorMuscleValue[] = [ '1', '2', '3', '4', '5', '1*', '2*', '3*', '4*', '1**', '2**', '3**', '4**', 'NT**'];
+  describe('checkIfMotorZPPIsApplicable', () => {
+    describe('Vac = Yes', () => {
+      const state = getInitialState(side, 'Yes', 'E', 'INT');
 
-    const continueWithLevelValueStar: MotorMuscleValue[] = ['0*'];
-    const breakWithLevelValuesStar: MotorMuscleValue[] = ['0**'];
+      it('adds NA to Motor ZPP and stops', () => {
+        const step = checkIfMotorZPPIsApplicable(state);
 
-    // 1 test
-    for (const x of continueValues) {
-      it(`motor.L5 = ${x};`, () => {
-        side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel, false);
-        expect(result.continue).toBe(true);
-        expect(result.level).toBeUndefined();
-      })
-    }
-
-    // 2 test
-    for (const x of continueWithLevelValues) {
-      it(`motor.L5 = ${x};`, () => {
-        side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel, false);
-        expect(result.continue).toBe(true);
-        expect(result.level).toBe(currentLevel);
-      })
-    }
-
-    // 14 test
-    for (const x of breakWithLevelValues) {
-      it(`motor.L5 = ${x};`, () => {
-        side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel, false);
-        expect(result.continue).toBe(false);
-        expect(result.level).toBe(currentLevel);
-      })
-    }
-
-    // 1 test
-    for (const x of continueWithLevelValueStar) {
-      it(`motor.L5 = ${x};`, () => {
-        side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel, false);
-        expect(result.continue).toBe(true);
-        expect(result.level).toBe(currentLevel + '*');
-      })
-    }
-
-    // 1 test
-    for (const x of breakWithLevelValuesStar) {
-      it(`motor.L5 = ${x};`, () => {
-        side.motor.L5 = x;
-        const result = checkLevelForMotorZPP(side, currentLevel, false);
-        expect(result.continue).toBe(false);
-        expect(result.level).toBe(currentLevel + '*');
-      })
-    }
-
-    it('check all tests are unique', () => {
-      const hashSet = new Set(allValues);
-      expect(allValues.length).toBe(19);
-      expect(hashSet.size).toBe(19);
-    })
-  })
-
-  // TODO: rewrite tests
-  // 100 + 1 verification test
-  describe(`checkLevelForMotorZPPOnSensory: using currentLevel = T12`, () => {
-    const allValues: {x: SensoryPointValue; y: SensoryPointValue}[] = [];
-
-    afterEach(() => {
-      allValues.push({
-        x: side.pinPrick.T12,
-        y: side.lightTouch.T12,
+        expect(step.state.zpp).toEqual(['NA']);
+        expect(step.next).toBeNull();
+        expect(step.description.key).toBe('motorZPPCheckIfMotorZPPIsApplicableDescription');
+        expect(step.actions.length).toEqual(1);
+        expect(step.actions[0].key).toEqual('motorZPPCheckIfMotorZPPIsApplicableYesAction');
       });
-    })
+    });
 
-    const breakWithLevelValues: SensoryPointValue[] = ['2', '0**', '1**', 'NT**'];
-    const continueValues: SensoryPointValue[] = ['0', '1', '0*', '1*', 'NT*'];
-    const continueWithLevelValues: SensoryPointValue[] = ['NT'];
+    describe('Vac = NT', () => {
+      const state = getInitialState(side, 'NT', 'E', 'INT');
 
-    // 16 tests
-    describe('continue = false; add level', () => {
-      for (const x of breakWithLevelValues) {
-        for (const y of breakWithLevelValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(false);
-            expect(result.level).toBe('T12');
-          })
-        }
-      }
-    })
+      it('adds NA to Motor ZPP and continues to checkLowerNonKeyMuscle', () => {
+        const step = checkIfMotorZPPIsApplicable(state);
 
-    // 75 tests
-    describe('continue = true', () => {
-      // 40 tests
-      for (const x of breakWithLevelValues) {
-        for (const y of continueValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBeUndefined();
-          })
-          it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
-            side.pinPrick.T12 = y;
-            side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBeUndefined();
-          })
-        }
-      }
+        expect(step.state.zpp).toEqual(['NA']);
+        expect(step.next).toBe(checkLowerNonKeyMuscle);
+        expect(step.description.key).toBe('motorZPPCheckIfMotorZPPIsApplicableDescription');
+        expect(step.actions.length).toEqual(1);
+        expect(step.actions[0].key).toEqual('motorZPPCheckIfMotorZPPIsApplicableNTAction');
+      });
+    });
+    
+    describe('Vac = No', () => {
+      side.lightTouch.S4_5 = '0';
+      side.pinPrick.S4_5 = '0';
+      const state = getInitialState(side, 'No', 'E', 'S3');
+  
+      it('leaves Motor ZPP empty and continues to checkLowerNonKeyMuscle', () => {
+        const step = checkIfMotorZPPIsApplicable(state);
+  
+        expect(step.state.zpp).toEqual([]);
+        expect(step.next).toBe(checkLowerNonKeyMuscle);
+        expect(step.description.key).toBe('motorZPPCheckIfMotorZPPIsApplicableDescription');
+        expect(step.actions.length).toEqual(1);
+        expect(step.actions[0].key).toEqual('motorZPPCheckIfMotorZPPIsApplicableNoAction');
+      });
+    });
+  });
 
-      // 16 tests
-      for (const x of continueValues) {
-        for (const y of continueValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBeUndefined();
-          })
-        }
-      }
+  /* *************************************** */
+  /*  checkLowerNonKeyMuscle tests           */
+  /* *************************************** */
 
-      // 8 tests
-      for (const x of continueWithLevelValues) {
-        for (const y of continueValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBeUndefined();
-          })
-          it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
-            side.pinPrick.T12 = y;
-            side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBeUndefined();
-          })
-        }
-      }
-    })
+  describe('checkLowerNonKeyMuscle', () => {
+    describe('AIS is C and non-key muscle is set to L2', () => {
+      side.lowestNonKeyMuscleWithMotorFunction = 'L2';
+      propagateSensoryValueFrom(side, 'T5', '0');
+      propagateMotorValueFrom(side, 'L2', '0');
+      const state = getInitialState(side, 'No', 'C', 'T4');
+      const expectedDescription = {key: 'motorZPPCheckLowerNonKeyMuscleDescription'};
+      const expectedActions = [{key: 'motorZPPCheckLowerNonKeyMuscleConsiderAction'}];
+      const expectedState = {
+        ...state,
+        zpp: [...state.zpp],
+        testNonKeyMuscle: true,
+      };
 
-    // 9 tests
-    describe('continue = true; add level', () => {
-      // 8 tests
-      for (const x of continueWithLevelValues) {
-        for (const y of breakWithLevelValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBe('T12');
-          })
-          it(`pinPrick.T12 = ${y}; lightTouch.T12 = ${x};`, () => {
-            side.pinPrick.T12 = y;
-            side.lightTouch.T12 = x;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBe('T12');
-          })
-        }
-      }
+      it('sets state.testNonKeyMuscle to true and continues to getTopAndBottomLevelsForCheck', () => {
+        const step = checkLowerNonKeyMuscle(state);
 
-      // 1 tests
-      for (const x of continueWithLevelValues) {
-        for (const y of continueWithLevelValues) {
-          it(`pinPrick.T12 = ${x}; lightTouch.T12 = ${y};`, () => {
-            side.pinPrick.T12 = x;
-            side.lightTouch.T12 = y;
-            const result = checkLevelForMotorZPPOnSensory(side, 'T12', false, true, true, true);
-            expect(result.continue).toBe(true);
-            expect(result.level).toBe('T12');
-          })
-        }
-      }
-    })
+        expect(step.description).toEqual(expectedDescription);
+        expect(step.actions).toEqual(expectedActions);
+        expect(step.state.zpp).toEqual(expectedState.zpp);
+        expect(step.state.testNonKeyMuscle).toBe(expectedState.testNonKeyMuscle);
+      });
+    });
 
-    it('check all tests are unique', () => {
-      const hashSet = new Set(allValues.map(v => v.x + v.y));
-      expect(allValues.length).toBe(100);
-      expect(hashSet.size).toBe(100);
-    })
-  })
+    describe('AIS is C* and non-key muscle is set to L2', () => {
+      side.lowestNonKeyMuscleWithMotorFunction = 'L2';
+      propagateSensoryValueFrom(side, 'T5', '0');
+      propagateMotorValueFrom(side, 'L2', '0');
+      const state = getInitialState(side, 'No', 'C*', 'T4');
+      const expectedDescription = {key: 'motorZPPCheckLowerNonKeyMuscleDescription'};
+      const expectedActions = [{key: 'motorZPPCheckLowerNonKeyMuscleConsiderAction'}];
+      const expectedState = {
+        ...state,
+        zpp: [...state.zpp],
+        testNonKeyMuscle: true,
+      };
 
-  // lowestNonKeyMuscleWithMotorFunction is only used when AIS = C or C*
-  describe(`lowestNonKeyMuscleWithMotorFunction`, () => {
-    // 20 + 1 verification test
-    describe('with empty side', () => {
-      beforeAll(() => {
-        side = newEmptySide();
-      })
+      it('sets state.testNonKeyMuscle to true and continues to getTopAndBottomLevelsForCheck', () => {
+        const step = checkLowerNonKeyMuscle(state);
 
-      const allValues: string[] = [];
-      let vac: BinaryObservation = 'No';
-      afterEach(() => {
-        allValues.push(vac + side.lowestNonKeyMuscleWithMotorFunction);
-      })
+        expect(step.description).toEqual(expectedDescription);
+        expect(step.actions).toEqual(expectedActions);
+        expect(step.state.zpp).toEqual(expectedState.zpp);
+        expect(step.state.testNonKeyMuscle).toBe(expectedState.testNonKeyMuscle);
+      });
+    });
 
-      // 20 test
-      for (const x of MotorLevels) {
-        it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
-          vac = 'No'
-          side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac, 'C');
-          expect(result).toBe(x);
-        })
-        it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
-          vac = 'NT'
-          side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac, 'C');
-          expect(result).toBe('NA,' + x);
-        })
-      }
+    describe('AIS is A and non-key muscle is set to L2', () => {
+      side.lowestNonKeyMuscleWithMotorFunction = 'L2';
+      propagateSensoryValueFrom(side, 'C2', '0');
+      propagateMotorValueFrom(side, 'C5', '0');
+      const state = getInitialState(side, 'No', 'A', 'C2');
+      const expectedDescription = {key: 'motorZPPCheckLowerNonKeyMuscleDescription'};
+      const expectedActions = [{key: 'motorZPPCheckLowerNonKeyMuscleDoNotConsiderAction'}];
+      const expectedState = {
+        ...state,
+        zpp: [...state.zpp],
+        testNonKeyMuscle: false,
+      };
 
-      it('check all tests are unique', () => {
-        const hashSet = new Set(allValues);
-        expect(allValues.length).toBe(20);
-        expect(hashSet.size).toBe(20);
-      })
-    })
+      it('sets state.testNonKeyMuscle to true and continues to getTopAndBottomLevelsForCheck', () => {
+        const step = checkLowerNonKeyMuscle(state);
 
-    // 20 + 1 verification test
-    describe('with normal side', () => {
-      beforeAll(() => {
-        side = newNormalSide();
-      })
+        expect(step.description).toEqual(expectedDescription);
+        expect(step.actions).toEqual(expectedActions);
+        expect(step.state.zpp).toEqual(expectedState.zpp);
+        expect(step.state.testNonKeyMuscle).toBe(expectedState.testNonKeyMuscle);
+      });
+    });
 
-      const allValues: string[] = [];
-      let vac: BinaryObservation = 'No';
-      afterEach(() => {
-        allValues.push(vac + side.lowestNonKeyMuscleWithMotorFunction);
-      })
+    describe('AIS is C but there is no non-key muscle', () => {
+      side.lowestNonKeyMuscleWithMotorFunction = undefined;
+      propagateSensoryValueFrom(side, 'T5', '0');
+      propagateMotorValueFrom(side, 'L2', '0');
+      const state = getInitialState(side, 'No', 'B', 'T4');
+      const expectedDescription = {key: 'motorZPPCheckLowerNonKeyMuscleDescription'};
+      const expectedActions = [{key: 'motorZPPCheckLowerNonKeyMuscleDoNotConsiderAction'}];
+      const expectedState = {
+        ...state,
+        zpp: [...state.zpp],
+        testNonKeyMuscle: false,
+      };
 
-      // 20 test
-      for (const x of MotorLevels) {
-        it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
-          vac = 'No'
-          side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac, 'C');
-          expect(result).toBe('S3');
-        })
-        it(`lowestNonKeyMuscleWithMotorFunction = ${x};`, () => {
-          vac = 'NT'
-          side.lowestNonKeyMuscleWithMotorFunction = x;
-          const result = determineMotorZPP(side, vac, 'C');
-          expect(result).toBe('NA');
-        })
-      }
+      it('sets state.testNonKeyMuscle to true and continues to getTopAndBottomLevelsForCheck', () => {
+        const step = checkLowerNonKeyMuscle(state);
 
-      it('check all tests are unique', () => {
-        const hashSet = new Set(allValues);
-        expect(allValues.length).toBe(20);
-        expect(hashSet.size).toBe(20);
-      })
-    })
-  })
-})
+        expect(step.description).toEqual(expectedDescription);
+        expect(step.actions).toEqual(expectedActions);
+        expect(step.state.zpp).toEqual(expectedState.zpp);
+        expect(step.state.testNonKeyMuscle).toBe(expectedState.testNonKeyMuscle);
+      });
+    });
+  });
+
+  /* *************************************** */
+  /*  getTopAndBottomLevelsForCheck tests    */
+  /* *************************************** */
+
+  describe('getTopAndBottomLevelsForCheck', () => {
+    side.lowestNonKeyMuscleWithMotorFunction = 'L2';
+    propagateSensoryValueFrom(side, 'T5', '0');
+    propagateMotorValueFrom(side, 'L2', '0');
+
+    describe('side with normal upper motor values and normal sensory values until T4', () => {
+      const testInput: {levelName: MotorLevel, valueType: 'motor' | 'pinPrick' | 'lightTouch', value: '1*' | '1**'}[] = [
+        {levelName: 'C8', valueType: 'motor', value: '1*'},
+        {levelName: 'C8', valueType: 'motor', value: '1**'},
+        {levelName: 'C8', valueType: 'pinPrick', value: '1*'},
+        {levelName: 'C8', valueType: 'pinPrick', value: '1**'},
+        {levelName: 'C8', valueType: 'lightTouch', value: '1*'},
+        {levelName: 'C8', valueType: 'lightTouch', value: '1**'},
+      ];
+
+      const lastLevelWithConsecutiveNormalValues = 'T4';
+
+      beforeEach(() => {
+        propagateSensoryValueFrom(side, 'T5', '0');
+        propagateMotorValueFrom(side, 'L2', '0');
+      });
+
+      testInput.forEach((input) => {
+        it(`sets ${input.levelName} as \`firstLevelWithStar\` and ${lastLevelWithConsecutiveNormalValues} as \`lastLevelWithConsecutiveNormalValues\` when ${input.levelName} has value of ${input.value} on ${input.valueType}`, () => {
+          side[input.valueType][input.levelName] = input.value;
+          
+          const state = getInitialState(side, 'No', 'C*', 'T4');
+          const step = getTopAndBottomLevelsForCheck(state);
+
+          expect(step.state.firstLevelWithStar?.name).toBe(input.levelName);
+          expect(step.state.lastLevelWithConsecutiveNormalValues.name).toBe(lastLevelWithConsecutiveNormalValues);
+          expect(step.description).toEqual({key: 'motorZPPGetTopAndBottomLevelsForCheckDescription'});
+          expect(step.actions).toEqual([
+            {key: 'motorZPPGetTopAndBottomLevelsForCheckRangeAction', params: {bottom: 'S1', top: 'T4'}},
+            {key: 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeTLAction'},
+            {key: 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeS10OrLowerAction'},
+          ]);
+        });
+      });
+    });
+  });
+
+  /* *************************************** */
+  /*  checkLevel tests                       */
+  /* *************************************** */
+
+  describe('checkLevel', () => {
+    describe('when a motor level is passed', () => {
+      let state: State;
+      let currentLevel: SideLevel;
+
+      beforeEach(() => {
+        const top: SideLevel = {
+          name: 'C5',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: '5',
+          index: 4,
+          previous: null,
+          next: null,
+        };
+
+        currentLevel = {
+          name: 'C6',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: '5',
+          index: 5,
+          previous: top,
+          next: null,
+        };
+
+        const bottom: SideLevel = {
+          name: 'C7',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: '5',
+          index: 6,
+          previous: currentLevel,
+          next: null,
+        };
+
+        top.next = currentLevel;
+        currentLevel.next = bottom;
+
+        state = getInitialState(side, 'No', 'C*', 'T4');
+        state.topLevel = top;
+        state.bottomLevel = bottom;
+        state.currentLevel = currentLevel;
+      });
+
+      it('`checkForMotorFunction` throws an exception when the `currentLevel` in the state object is null', () => {
+        state.currentLevel = null;
+        expect(() => checkLevel(state)).toThrowError('checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.');
+      });
+
+      it('calls `checkForMotorFunction`', () => {
+        const step = checkLevel(state);
+        
+        expect(step.description)
+        .toEqual(
+          {
+            key: 'motorZPPCheckForMotorFunctionDescription',
+            params: {levelName: currentLevel.name, motor: currentLevel.motor},
+          },
+        );
+      });
+    });
+    
+    describe('when a sensory level is passed', () => {
+      let state: State;
+      let currentLevel: SideLevel;
+
+      beforeEach(() => {
+        const top: SideLevel = {
+          name: 'T8',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: null,
+          index: 14,
+          previous: null,
+          next: null,
+        };
+
+        currentLevel = {
+          name: 'T9',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: null,
+          index: 15,
+          previous: top,
+          next: null,
+        };
+
+        const bottom: SideLevel = {
+          name: 'T10',
+          lightTouch: '2',
+          pinPrick: '2',
+          motor: null,
+          index: 16,
+          previous: currentLevel,
+          next: null,
+        };
+
+        top.next = currentLevel;
+        currentLevel.next = bottom;
+
+        state = getInitialState(side, 'No', 'C*', 'T4');
+        state.topLevel = top;
+        state.bottomLevel = bottom;
+        state.currentLevel = currentLevel;
+      });
+
+      it('`checkForMotorFunction` throws an exception when the `currentLevel` in the state object is null', () => {
+        state.currentLevel = null;
+        expect(() => checkLevel(state)).toThrowError('checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.');
+      });
+
+      it('calls `checkForMotorFunction`', () => {
+        const step = checkLevel(state);
+        
+        expect(step.description)
+        .toEqual(
+          {
+            key: 'motorZPPCheckForSensoryFunctionDescription',
+            params: {levelName: currentLevel.name, lightTouch: currentLevel.lightTouch, pinPrick: currentLevel.pinPrick},
+          },
+        );
+      });
+    });
+  });
+});

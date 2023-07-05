@@ -10,6 +10,6 @@ export const classify = (exam: Exam): Classification => {
   const neurologicalLevelOfInjury = determineNeurologicalLevelOfInjury(exam);
   const injuryComplete = determineInjuryComplete(exam);
   const ASIAImpairmentScale = determineASIAImpairmentScale(exam, injuryComplete, neurologicalLevels, neurologicalLevelOfInjury);
-  const zoneOfPartialPreservations = determineZoneOfPartialPreservations(exam, ASIAImpairmentScale);
+  const zoneOfPartialPreservations = determineZoneOfPartialPreservations(exam, ASIAImpairmentScale, neurologicalLevels);
   return { neurologicalLevels, neurologicalLevelOfInjury, injuryComplete, ASIAImpairmentScale, zoneOfPartialPreservations };
 }
