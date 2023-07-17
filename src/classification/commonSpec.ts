@@ -1,4 +1,4 @@
-import { Exam, ExamSide, Sensory, Motor } from "../interfaces";
+import {Exam, ExamSide, Sensory, Motor, SensoryLevel, SensoryLevels, SensoryPointValue, MotorMuscleValue, MotorLevel, MotorLevels} from "../interfaces";
 
 export const newEmptySensory = (): Sensory => ({
   C2: '0', C3: '0', C4: '0', C5: '0', C6: '0', C7: '0', C8: '0',
@@ -47,4 +47,23 @@ export const newEmptyExam = (): Exam => {
     right,
     left,
   };
+}
+
+export function propagateSensoryValueFrom(side:ExamSide, level: SensoryLevel, value: SensoryPointValue) {
+  for (let i = SensoryLevels.indexOf(level); i<SensoryLevels.length; i++) {
+    const currentLevel = SensoryLevels[i];
+
+    if (currentLevel === 'C1') {
+      continue;
+    }
+
+    side.lightTouch[currentLevel] = value;
+    side.pinPrick[currentLevel] = value;
+  }
+}
+
+export function propagateMotorValueFrom(side:ExamSide, level: MotorLevel, value: MotorMuscleValue) {
+  for (let i = MotorLevels.indexOf(level); i<MotorLevels.length; i++) {
+    side.motor[MotorLevels[i]] = value;
+  }
 }

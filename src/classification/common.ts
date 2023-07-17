@@ -1,4 +1,7 @@
-import { SensoryPointValue, SensoryLevel, SensoryLevels } from "../interfaces";
+import {MotorMuscleValue, SensoryLevel, SensoryLevels, SensoryPointValue} from "../interfaces";
+import translations from '../en';
+
+export type Translation = keyof typeof translations;
 
 export interface CheckLevelResult {
   continue: boolean;
@@ -18,4 +21,14 @@ export const isNormalSensory = (value: SensoryPointValue): boolean => ['2','NT**
 
 export const levelIsBetween = (index: number, firstLevel: SensoryLevel, lastLevel: SensoryLevel): boolean => {
   return index >= SensoryLevels.indexOf(firstLevel) && index <= SensoryLevels.indexOf(lastLevel);
+};
+
+export type SideLevel = {
+  name: SensoryLevel;
+  lightTouch: SensoryPointValue;
+  pinPrick: SensoryPointValue;
+  motor: MotorMuscleValue | null;
+  index: number;
+  next: SideLevel | null;
+  previous: SideLevel | null;
 };
