@@ -23,42 +23,42 @@ export const checkLevelWithoutMotor = (level: SensoryLevel, leftSensoryResult: C
 }
 
 export const checkLevelWithMotor = (exam: Exam, level: SensoryLevel, sensoryResult: CheckLevelResult, variable: boolean): CheckLevelResult => {
-  if (!sensoryResult.continue) {
-    return sensoryResult;
-  } else {
-    const i = SensoryLevels.indexOf(level);
-    const index = i - (levelIsBetween(i,'C4','T1') ? 4 : 16);
-    const motorLevel = MotorLevels[index];
-    const nextMotorLevel = MotorLevels[index + 1];
+  const i = SensoryLevels.indexOf(level);
+  const index = i - (levelIsBetween(i,'C4','T1') ? 4 : 16);
+  const motorLevel = MotorLevels[index];
+  const nextMotorLevel = MotorLevels[index + 1];
 
-    const leftMotorResult = level === 'C4' || level === 'L1' ?
-      checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
-      level === 'T1' || level === 'S1' ?
-        checkMotorLevel(exam.left, motorLevel, motorLevel, variable) :
-        checkMotorLevel(exam.left, motorLevel, nextMotorLevel, variable);
-    const rightMotorResult = level === 'C4' || level === 'L1' ?
-      checkMotorLevelBeforeStartOfKeyMuscles(exam.right, level, nextMotorLevel, variable) :
-      level === 'T1' || level === 'S1' ?
-        checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hot fix
-        checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
+  const leftMotorResult = level === 'C4' || level === 'L1' ?
+    checkMotorLevelBeforeStartOfKeyMuscles(exam.left, level, nextMotorLevel, variable) :
+    level === 'T1' || level === 'S1' ?
+      checkMotorLevel(exam.left, motorLevel, motorLevel, variable) :
+      checkMotorLevel(exam.left, motorLevel, nextMotorLevel, variable);
+  const rightMotorResult = level === 'C4' || level === 'L1' ?
+    checkMotorLevelBeforeStartOfKeyMuscles(exam.right, level, nextMotorLevel, variable) :
+    level === 'T1' || level === 'S1' ?
+      checkMotorLevel(exam.right, motorLevel, motorLevel, variable) : // TODO: hot fix
+      checkMotorLevel(exam.right, motorLevel, nextMotorLevel, variable);
 
-    let resultLevel;
-    if (leftMotorResult.level || rightMotorResult.level || sensoryResult.level) {
-      if (
-        leftMotorResult.level && rightMotorResult.level &&
-        leftMotorResult.level.includes('*') && rightMotorResult.level.includes('*')
-      ) {
-        resultLevel = level + '*';
-      } else {
-        resultLevel = level + (variable ? '*' : '');
-      }
+  let resultLevel;
+
+  if (leftMotorResult.level || rightMotorResult.level || sensoryResult.level) {
+    if (
+      leftMotorResult.level && rightMotorResult.level &&
+      (leftMotorResult.level.includes('*') || rightMotorResult.level.includes('*'))
+    ) {
+      resultLevel = level + '*';
+    } else {
+      resultLevel = level + (variable ? '*' : '');
     }
-    return {
+  }
+
+  return  !sensoryResult.continue
+    ? {...sensoryResult, level: resultLevel}
+    : {
       continue: leftMotorResult.continue && rightMotorResult.continue,
       level: resultLevel,
       variable: variable || sensoryResult.variable || leftMotorResult.variable || rightMotorResult.variable,
     }
-  }
 }
 
 export const determineNeurologicalLevelOfInjury = (exam: Exam): string => {
@@ -71,11 +71,13 @@ export const determineNeurologicalLevelOfInjury = (exam: Exam): string => {
       continue: true,
       variable: false,
     };
+
     if (!nextLevel) {
       listOfNLI.push('INT' + (variable ? '*' : ''));
     } else {
       const leftSensoryResult = checkSensoryLevel(exam.left, level, nextLevel, variable);
       const rightSensoryResult = checkSensoryLevel(exam.right, level, nextLevel, variable);
+
       if (levelIsBetween(i,'C4','T1') || levelIsBetween(i,'L1','S1')) {
         const sensoryResult = checkLevelWithoutMotor(level, leftSensoryResult, rightSensoryResult, variable);
         result = checkLevelWithMotor(exam, level, sensoryResult, variable);

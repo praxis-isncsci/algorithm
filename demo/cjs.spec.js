@@ -1,4 +1,4 @@
-const { ISNCSCI } = require("isncsci");
+const {ISNCSCI} = require("../src/ISNCSCI");
 const exam = require("./demo-exam.json");
 const demoResult = require("./demo-exam-result.json");
 
