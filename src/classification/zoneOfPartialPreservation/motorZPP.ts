@@ -1,6 +1,5 @@
-import {BinaryObservation, ExamSide, MotorMuscleValue, MotorLevel, MotorLevels, SensoryPointValue, SensoryLevel, SensoryLevels} from '../../interfaces';
+import {BinaryObservation, ExamSide, MotorLevel, MotorLevels, SensoryLevel, SensoryLevels} from '../../interfaces';
 import {SideLevel, Translation} from '../common';
-
 
 /* *************************************** */
 /*  Types                                  */
@@ -41,7 +40,7 @@ export type Step = {
  *   'Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues'
  *   This happens when the side has invalid or missing values or the provided top or bottom level are calculated incorrectly.
  */
-function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel, includeSensoryLevels: boolean, nonKeyMuscleName: MotorLevel | null): {
+function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel, nonKeyMuscleName: MotorLevel | null): {
   topLevel: SideLevel,
   bottomLevel: SideLevel,
   nonKeyMuscle: SideLevel | null,
@@ -96,7 +95,7 @@ function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel,
     if (top === sensoryLevelName) {
       currentLevel = level;
       topLevel = level;
-    } else if (currentLevel && (motorLevelName || includeSensoryLevels)) {
+    } else if (currentLevel) {
       currentLevel.next = level;
       level.previous = currentLevel;
       currentLevel = level;
@@ -404,30 +403,23 @@ export function checkLevel(state: State): Step {
 export function getTopAndBottomLevelsForCheck(state: State): Step {
   const motorLevels = state.motorLevel.replace(/\*/g, '').split(',');
   const top = motorLevels[0] as SensoryLevel;
-
-  // We exclude not normal T1 values as there would be no propagation for that case
-  const includeThoracicAndLumbarSensoryLevels = /T1\*?(,|$)/.test(state.motorLevel) && /^(5|NT|(NT|[0-4])\*\*)$/.test(state.side.motor['T1']);
-  const includeThoracicAndLumbarAction: {key: Translation} =
-    {key: includeThoracicAndLumbarSensoryLevels ? 'motorZPPGetTopAndBottomLevelsForCheckIncludeTLAction' : 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeTLAction'};
+  const lowestMotorLevel = motorLevels[motorLevels.length - 1];
 
   // We exclude not normal S1 values as there would be no propagation for that case
-  const motorIncludesS1OrLower = (/S1\*?(,|$)/.test(state.motorLevel) && /^(5|NT|(NT|[0-4])\*\*)$/.test(state.side.motor['S1']))
-    || /(S2|S3|INT)\*?(,|$)/.test(state.motorLevel);
-  const lowestMotorLevel = motorLevels[motorLevels.length - 1];
-  const bottom = motorIncludesS1OrLower
+  const hasMotorBelowS1 = /(S2|S3|INT)\*?(,|$)/.test(state.motorLevel);
+  const bottom = hasMotorBelowS1
     ? lowestMotorLevel === 'INT' ? 'S3' : lowestMotorLevel as SensoryLevel
     : 'S1';
   const includeS10OrLowerAction: {key: Translation} = {
-    key: includeThoracicAndLumbarSensoryLevels && motorIncludesS1OrLower
-      ? 'motorZPPGetTopAndBottomLevelsForCheckIncludeS10OrLowerAction'
-      : 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeS10OrLowerAction'
+    key: hasMotorBelowS1
+      ? 'motorZPPGetTopAndBottomLevelsForCheckIncludeBelowS1Action'
+      : 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeBelowS1Action'
   };
 
   const {topLevel, bottomLevel, nonKeyMuscle, firstLevelWithStar, lastLevelWithConsecutiveNormalValues} = getLevelsRange(
     state.side,
     top,
     bottom,
-    includeThoracicAndLumbarSensoryLevels,
     state.side.lowestNonKeyMuscleWithMotorFunction ? state.side.lowestNonKeyMuscleWithMotorFunction as MotorLevel : null,
   );
 
@@ -435,7 +427,6 @@ export function getTopAndBottomLevelsForCheck(state: State): Step {
     description: {key: 'motorZPPGetTopAndBottomLevelsForCheckDescription'},
     actions: [
       {key: 'motorZPPGetTopAndBottomLevelsForCheckRangeAction', params: {bottom: bottomLevel.name, top: topLevel.name}},
-      includeThoracicAndLumbarAction,
       includeS10OrLowerAction,
     ],
     state: {
