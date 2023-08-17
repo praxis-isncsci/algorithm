@@ -61,7 +61,7 @@ function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel,
     const level: SideLevel = {
       name: sensoryLevelName,
       lightTouch: sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
-      pinPrick: sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
+      pinPrick: sensoryLevelName === 'C1' ? '2' : side.pinPrick[sensoryLevelName],
       motor: motorLevelName ? side.motor[motorLevelName] : null,
       index: i,
       next: null,
