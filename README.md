@@ -186,6 +186,60 @@ type SensoryPointValue =
   'NT' | 'NT*' | 'NT**';
 ```
 
+### Classification values
+
+The classification elements can have the following values:
+
+**Neurological levels** and the **neurological level of injury** is a comma separated list of levels, e.g. `C5, C6, C7, C8, T1` or `C5, C6, C7, C8, T1, L2, L3, L4, L5, S1`.
+The range can include levels from `C1` to `S3` or `INT` when normal values extend all the way to `S4-5`.
+This applies to the following elements:
+
+- `classification.neurologicalLevel.sensoryRight`
+- `classification.neurologicalLevel.sensoryLeft`
+- `classification.neurologicalLevel.motorRight`
+- `classification.neurologicalLevel.motorLeft`
+- `classification.neurologicalLevelOfInjury`
+
+The  can be a single level, e.g. `C5` or `C6`.
+
+**Injury complete** is a comma separated list that includes any of the following values: `C`, `I`.
+
+**ASIA Impairment Scale** is a single comma separated list that includes any of the following values: `A`, `B`, `C`, `D`, `E`.
+
+**Zone of Partial Preservations** is a comma separated list of levels, e.g. `C5, C6, C7, C8, T1` or `C5, C6, C7, C8, T1, L2, L3, L4, L5, S1`.
+Just as the **neurological levels**, the range can include levels from `C1` to `S3` or `INT` when normal values extend all the way to `S4-5`. It can also include `NA` if there is sensation at `S4-5` or either `VAC` or `DAP` are set to `Yes`.
+This applies to the following elements:
+
+- `classification.zoneOfPartialPreservations.sensoryRight`
+- `classification.zoneOfPartialPreservations.sensoryLeft`
+- `classification.zoneOfPartialPreservations.motorRight`
+- `classification.zoneOfPartialPreservations.motorLeft`
+
+### Totals values
+
+The totals are calculated by adding the values of the motor and sensory (light touch and pin prick) columns, therefore they can be a number from 0 to 112.
+They, however, can receive a value of `ND` if there is an `NT` value in their column, ans `NT` has no numeric value to be added.
+This affects:
+
+| Total                                | Possible values |
+|--------------------------------------|----------------:|
+| `result.totals.left.upperExtremity`  | 0-25, `ND`      |
+| `result.totals.left.lowerExtremity`  | 0-25, `ND`      |
+| `result.totals.left.lightTouch`      | 0-56, `ND`      |
+| `result.totals.left.pinPrick`        | 0-56, `ND`      |
+| `result.totals.left.motor`           | 0-50, `ND`      |
+| `result.totals.right.upperExtremity` | 0-25, `ND`      |
+| `result.totals.right.lowerExtremity` | 0-25, `ND`      |
+| `result.totals.right.lightTouch`     | 0-56, `ND`      |
+| `result.totals.right.pinPrick`       | 0-56, `ND`      |
+| `result.totals.right.motor`          | 0-50, `ND`      |
+| `result.totals.upperExtremity`       | 0-50, `ND`      |
+| `result.totals.lowerExtremity`       | 0-50, `ND`      |
+| `result.totals.lightTouch`           | 0-112, `ND`     |
+| `result.totals.pinPrick`             | 0-112, `ND`     |
+
+
+
 ## Demo
 Demo files that can be used as examples are found in the `demo` folder.
 
