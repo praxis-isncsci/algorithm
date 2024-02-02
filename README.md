@@ -200,8 +200,6 @@ This applies to the following elements:
 - `classification.neurologicalLevel.motorLeft`
 - `classification.neurologicalLevelOfInjury`
 
-The  can be a single level, e.g. `C5` or `C6`.
-
 **Injury complete** is a comma separated list that includes any of the following values: `C`, `I`.
 
 **ASIA Impairment Scale** is a single comma separated list that includes any of the following values: `A`, `B`, `C`, `D`, `E`.
