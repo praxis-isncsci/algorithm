@@ -188,10 +188,12 @@ type SensoryPointValue =
 
 ### Classification values
 
-The classification elements can have the following values:
+The classification elements can have the following values shown below.
 
 **Neurological levels** and the **neurological level of injury** is a comma separated list of levels, e.g. `C5, C6, C7, C8, T1` or `C5, C6, C7, C8, T1, L2, L3, L4, L5, S1`.
 The range can include levels from `C1` to `S3` or `INT` when normal values extend all the way to `S4-5`.
+All the values in the range could also be suffixed with `*` if a value flagged with a `*` was involved in the calculation.
+For example, if whe have only normal values for **right pin prick** and **right light touch** but one of the values has been flagged with `**`, **Right sensory** would be `INT*`.
 This applies to the following elements:
 
 - `classification.neurologicalLevel.sensoryRight`
@@ -203,9 +205,12 @@ This applies to the following elements:
 **Injury complete** is a comma separated list that includes any of the following values: `C`, `I`.
 
 **ASIA Impairment Scale** is a single comma separated list that includes any of the following values: `A`, `B`, `C`, `D`, `E`.
+All the values in the range could also be suffixed with `*` if a value flagged with a `*` was involved in the calculation.
+For example, if a form had only normal values and `Yes` for **VAC** and **DAP**, but one of the values has been flagged with `**`, the `AIS` would be `E*`.
 
 **Zone of Partial Preservations** is a comma separated list of levels, e.g. `C5, C6, C7, C8, T1` or `C5, C6, C7, C8, T1, L2, L3, L4, L5, S1`.
 Just as the **neurological levels**, the range can include levels from `C1` to `S3` or `INT` when normal values extend all the way to `S4-5`. It can also include `NA` if there is sensation at `S4-5` or either `VAC` or `DAP` are set to `Yes`.
+All the values in the range could also be suffixed with `*` if a value flagged with a `*` was involved in the calculation.
 This applies to the following elements:
 
 - `classification.zoneOfPartialPreservations.sensoryRight`
