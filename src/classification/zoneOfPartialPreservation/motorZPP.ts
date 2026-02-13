@@ -149,7 +149,7 @@ function hasStarOnCurrentOrAboveLevel(
   lastLevelWithConsecutiveNormalValues: SideLevel,
   firstLevelWithStar: SideLevel | null,
 ): boolean {
-  // Good example, case #93
+  // An example of a case where firstLevelWithStar is null is case #93 in `specs/2019.json`.
   if (!firstLevelWithStar) {
     return false;
   }
@@ -158,20 +158,16 @@ function hasStarOnCurrentOrAboveLevel(
     return /0\*/.test(currentLevel.motor);
   }
 
-  if (
-    /\d\*/.test(currentLevel.lightTouch) ||
-    /\d\*/.test(currentLevel.pinPrick)
-  ) {
+  const hasStarOnCurrentLevel =
+    /\d\*/.test(currentLevel.lightTouch) || /\d\*/.test(currentLevel.pinPrick);
+  if (hasStarOnCurrentLevel) {
     return true;
   }
 
-  // return currentLevel.index <= lastLevelWithConsecutiveNormalValues.index && currentLevel.index >= firstLevelWithStar.index;
-  return (
-    /\d\*/.test(currentLevel.lightTouch) ||
-    /\d\*/.test(currentLevel.pinPrick) ||
-    (currentLevel.index <= lastLevelWithConsecutiveNormalValues.index &&
-      currentLevel.index >= firstLevelWithStar.index)
-  );
+  const isInStarRange =
+    currentLevel.index >= firstLevelWithStar.index &&
+    currentLevel.index <= lastLevelWithConsecutiveNormalValues.index;
+  return isInStarRange;
 }
 
 /* *************************************** */
