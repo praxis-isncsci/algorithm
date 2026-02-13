@@ -183,7 +183,7 @@ function hasStarOnCurrentOrAboveLevel(
  * Sorts the ZPP results ensuring the `NA` value, if available, is at the beginning of the list.
  */
 export function sortMotorZPP(state: State): Step {
-  const zpp = state.zpp.sort((a, b) => {
+  const zpp = [...state.zpp].sort((a, b) => {
     const aIndex =
       a === 'NA'
         ? -1
