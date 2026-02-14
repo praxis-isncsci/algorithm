@@ -9,6 +9,38 @@ import {
 import { SideLevel, Translation } from '../common';
 
 /* *************************************** */
+/*  Constants - Regex patterns              */
+/* *************************************** */
+
+const PATTERNS = {
+  /** Contains asterisk (variable/non-normal indicator) */
+  hasVariableIndicator: /\*/,
+  /** Normal sensory: 2 or ends with ** */
+  normalSensory: /(^2$)|(\*\*$)/,
+  /** Normal motor: 5 or ends with ** */
+  normalMotor: /(^5$)|(\*\*$)/,
+  /** Motor grade 0* (impaired with variable) */
+  motorZeroWithStar: /0\*/,
+  /** Digit followed by * (e.g. 1*, 2* in sensory) */
+  digitWithStar: /\d\*/,
+  /**
+   * Motor values indicating motor function (excludes 0 and 0* which mean no function).
+   * Matches: grades 1-5 (and variants like 1*, 2**, etc.), NT**, or 0**.
+   */
+  hasMotorValueExcludingZeroStar: /^[1-5]|^(?:NT|0)\*\*$/,
+  /** Not tested or 0*: NT, NT*, or 0* */
+  notTestedOrZeroStar: /^(NT\*?$)|(0\*$)/,
+  /** Levels below S1: S2, S3, or INT (independent of motor or sensory) */
+  levelBelowS1: /(S2|S3|INT)\*?(,|$)/,
+  /** AIS grade C or C* */
+  aisGradeC: /C/i,
+  /** Asterisk(s) to strip from level names */
+  stripAsterisk: /\*/g,
+  /** Single asterisk for replacement */
+  singleAsterisk: /\*/,
+} as const;
+
+/* *************************************** */
 /*  Types                                  */
 /* *************************************** */
 
@@ -88,18 +120,18 @@ function getLevelsRange(
 
     if (
       !firstLevelWithStar &&
-      (/\*/.test(level.lightTouch) ||
-        /\*/.test(level.pinPrick) ||
-        /\*/.test(level.motor ?? ''))
+      (PATTERNS.hasVariableIndicator.test(level.lightTouch) ||
+        PATTERNS.hasVariableIndicator.test(level.pinPrick) ||
+        PATTERNS.hasVariableIndicator.test(level.motor ?? ''))
     ) {
       firstLevelWithStar = level;
     }
 
     if (
       !lastLevelWithConsecutiveNormalValues &&
-      (!/(^2$)|(\*\*$)/.test(level.lightTouch) ||
-        !/(^2$)|(\*\*$)/.test(level.pinPrick) ||
-        !/(^5$)|(\*\*$)/.test(level.motor ?? ''))
+      (!PATTERNS.normalSensory.test(level.lightTouch) ||
+        !PATTERNS.normalSensory.test(level.pinPrick) ||
+        !PATTERNS.normalMotor.test(level.motor ?? ''))
     ) {
       lastLevelWithConsecutiveNormalValues = currentLevel;
     }
@@ -155,11 +187,12 @@ function hasStarOnCurrentOrAboveLevel(
   }
 
   if (currentLevel.motor !== null) {
-    return /0\*/.test(currentLevel.motor);
+    return PATTERNS.motorZeroWithStar.test(currentLevel.motor);
   }
 
   const hasStarOnCurrentLevel =
-    /\d\*/.test(currentLevel.lightTouch) || /\d\*/.test(currentLevel.pinPrick);
+    PATTERNS.digitWithStar.test(currentLevel.lightTouch) ||
+    PATTERNS.digitWithStar.test(currentLevel.pinPrick);
   if (hasStarOnCurrentLevel) {
     return true;
   }
@@ -183,11 +216,15 @@ export function sortMotorZPP(state: State): Step {
     const aIndex =
       a === 'NA'
         ? -1
-        : SensoryLevels.indexOf(a.replace(/\*/, '') as SensoryLevel);
+        : SensoryLevels.indexOf(
+            a.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+          );
     const bIndex =
       b === 'NA'
         ? -1
-        : SensoryLevels.indexOf(b.replace(/\*/, '') as SensoryLevel);
+        : SensoryLevels.indexOf(
+            b.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+          );
     return aIndex - bIndex;
   });
 
@@ -388,11 +425,7 @@ export function checkForMotorFunction(state: State): Step {
   };
   const isTopRangeLevel = currentLevel.name === state.topLevel.name;
 
-  // This will skip 0*, which needs to be handled individually
-  if (
-    /^[1-5]/.test(currentLevel.motor) ||
-    /^(NT|[0-4])\*\*$/.test(currentLevel.motor)
-  ) {
+  if (PATTERNS.hasMotorValueExcludingZeroStar.test(currentLevel.motor)) {
     const hasStar = hasStarOnCurrentOrAboveLevel(
       currentLevel,
       state.lastLevelWithConsecutiveNormalValues,
@@ -431,7 +464,7 @@ export function checkForMotorFunction(state: State): Step {
         };
   }
 
-  if (/^(NT\*?$)|(0\*$)/.test(currentLevel.motor)) {
+  if (PATTERNS.notTestedOrZeroStar.test(currentLevel.motor)) {
     const actions: { key: Translation }[] = [
       {
         key: isTopRangeLevel
@@ -529,12 +562,14 @@ export function checkLevel(state: State): Step {
  * It sets `currentLevel = bottom` and a reference to `nonKeyMuscle` if one was specified.
  */
 export function getTopAndBottomLevelsForCheck(state: State): Step {
-  const motorLevels = state.motorLevel.replace(/\*/g, '').split(',');
+  const motorLevels = state.motorLevel
+    .replace(PATTERNS.stripAsterisk, '')
+    .split(',');
   const top = motorLevels[0] as SensoryLevel;
   const lowestMotorLevel = motorLevels[motorLevels.length - 1];
 
   // We exclude not normal S1 values as there would be no propagation for that case
-  const hasMotorBelowS1 = /(S2|S3|INT)\*?(,|$)/.test(state.motorLevel);
+  const hasMotorBelowS1 = PATTERNS.levelBelowS1.test(state.motorLevel);
   const bottom = hasMotorBelowS1
     ? lowestMotorLevel === 'INT'
       ? 'S3'
@@ -595,7 +630,7 @@ export function checkLowerNonKeyMuscle(state: State): Step {
   // AIS C or C* implies that there is sensory function at S4-5 and that the lowest non-key muscle could have influenced the AIS calculation.
   const testNonKeyMuscle =
     state.side.lowestNonKeyMuscleWithMotorFunction !== null &&
-    /C/i.test(state.ais);
+    PATTERNS.aisGradeC.test(state.ais);
 
   return {
     description: { key: 'motorZPPCheckLowerNonKeyMuscleDescription' },
@@ -677,7 +712,7 @@ export function getInitialState(
 
   return {
     ais,
-    motorLevel: motorLevel.replace(/\*/g, ''),
+    motorLevel: motorLevel.replace(PATTERNS.stripAsterisk, ''),
     voluntaryAnalContraction,
     zpp: [],
     topLevel: c1,
