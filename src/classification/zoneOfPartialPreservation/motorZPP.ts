@@ -7,6 +7,12 @@ import {
   SensoryLevels,
 } from '../../interfaces';
 import { SideLevel, Translation } from '../common';
+import {
+  MotorZPPError,
+  MOTOR_ZPP_ERROR_MESSAGES,
+} from './motorZPPErrors';
+
+export { MotorZPPError, MOTOR_ZPP_ERROR_MESSAGES };
 
 /* *************************************** */
 /*  Constants - Regex patterns              */
@@ -205,9 +211,7 @@ function getLevelsRange(
   const nonKeyMuscle = findNonKeyMuscle(levels, nonKeyMuscleName);
 
   if (!topLevel || !bottomLevel || !lastLevelWithConsecutiveNormalValues) {
-    throw new Error(
-      'getLevelsRange :: Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues',
-    );
+    throw new MotorZPPError('LEVELS_RANGE_UNDETERMINED');
   }
 
   return {
@@ -373,8 +377,8 @@ export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
  */
 export function checkForSensoryFunction(state: State): Step {
   if (!state.currentLevel) {
-    throw new Error(
-      'checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.',
+    throw new MotorZPPError(
+      'CHECK_FOR_SENSORY_FUNCTION_CURRENT_LEVEL_REQUIRED',
     );
   }
 
@@ -471,16 +475,14 @@ export function checkForSensoryFunction(state: State): Step {
  */
 export function checkForMotorFunction(state: State): Step {
   if (!state.currentLevel) {
-    throw new Error(
-      'checkForMotorFunction :: state.currentLevel is null. A SideLevel value is required.',
+    throw new MotorZPPError(
+      'CHECK_FOR_MOTOR_FUNCTION_CURRENT_LEVEL_REQUIRED',
     );
   }
 
   const currentLevel = state.currentLevel;
   if (!currentLevel.motor) {
-    throw new Error(
-      'checkForMotorFunction :: state.currentLevel.motor is null.',
-    );
+    throw new MotorZPPError('CHECK_FOR_MOTOR_FUNCTION_MOTOR_REQUIRED');
   }
 
   const description: { key: Translation; params: { [key: string]: string } } = {

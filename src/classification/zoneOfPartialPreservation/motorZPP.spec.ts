@@ -7,6 +7,7 @@ import {
   getInitialState,
   getTopAndBottomLevelsForCheck,
   motorZPPSteps,
+  MotorZPPError,
 } from "./motorZPP"
 import {BinaryObservation, ExamSide, MotorLevel, SensoryPointValue} from "../../interfaces";
 import {newNormalSide, propagateMotorValueFrom, propagateSensoryValueFrom} from "../commonSpec";
@@ -334,9 +335,12 @@ describe('motorZPP', () => {
         state.currentLevel = currentLevel;
       });
 
-      it('`checkForMotorFunction` throws an exception when the `currentLevel` in the state object is null', () => {
+      it('`checkForMotorFunction` throws MotorZPPError when the `currentLevel` in the state object is null', () => {
         state.currentLevel = null;
-        expect(() => checkLevel(state)).toThrowError('checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.');
+        expect(() => checkLevel(state)).toThrow(MotorZPPError);
+        expect(() => checkLevel(state)).toThrowError(
+          'checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.',
+        );
       });
 
       it('calls `checkForMotorFunction`', () => {
@@ -396,9 +400,12 @@ describe('motorZPP', () => {
         state.currentLevel = currentLevel;
       });
 
-      it('`checkForMotorFunction` throws an exception when the `currentLevel` in the state object is null', () => {
+      it('`checkForMotorFunction` throws MotorZPPError when the `currentLevel` in the state object is null', () => {
         state.currentLevel = null;
-        expect(() => checkLevel(state)).toThrowError('checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.');
+        expect(() => checkLevel(state)).toThrow(MotorZPPError);
+        expect(() => checkLevel(state)).toThrowError(
+          'checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.',
+        );
       });
 
       it('calls `checkForMotorFunction`', () => {
