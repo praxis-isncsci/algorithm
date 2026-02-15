@@ -6,6 +6,7 @@ import {
   determineMotorZPP,
   getInitialState,
   getTopAndBottomLevelsForCheck,
+  motorZPPSteps,
 } from "./motorZPP"
 import {BinaryObservation, ExamSide, MotorLevel, SensoryPointValue} from "../../interfaces";
 import {newNormalSide, propagateMotorValueFrom, propagateSensoryValueFrom} from "../commonSpec";
@@ -411,6 +412,66 @@ describe('motorZPP', () => {
             },
           );
       });
+    });
+  });
+
+  /* *************************************** */
+  /*  motorZPPSteps tests                     */
+  /* *************************************** */
+
+  describe('motorZPPSteps', () => {
+    beforeEach(() => {
+      side = newNormalSide();
+    });
+
+    it('yields at least one step', () => {
+      const steps = Array.from(motorZPPSteps(side, 'Yes', 'E', 'S3'));
+      expect(steps.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('final step result matches determineMotorZPP for same inputs', () => {
+      side.lightTouch.S4_5 = '0';
+      side.pinPrick.S4_5 = '0';
+      propagateSensoryValueFrom(side, 'T5', '0');
+      propagateMotorValueFrom(side, 'L2', '0');
+
+      const expected = determineMotorZPP(side, 'No', 'C*', 'T4');
+      const steps = Array.from(motorZPPSteps(side, 'No', 'C*', 'T4'));
+      const lastStep = steps[steps.length - 1];
+      const actual = lastStep.state.zpp.join(',');
+
+      expect(actual).toBe(expected);
+    });
+
+    it('VAC = Yes yields 1 step and stops (next is null)', () => {
+      const steps = Array.from(motorZPPSteps(side, 'Yes', 'E', 'INT'));
+      expect(steps).toHaveLength(1);
+      expect(steps[0].next).toBeNull();
+      expect(steps[0].state.zpp).toEqual(['NA']);
+    });
+
+    it('VAC = No yields multiple steps for full calculation', () => {
+      side.lightTouch.S4_5 = '0';
+      side.pinPrick.S4_5 = '0';
+      propagateSensoryValueFrom(side, 'T5', '0');
+      propagateMotorValueFrom(side, 'L2', '0');
+
+      const steps = Array.from(motorZPPSteps(side, 'No', 'C*', 'T4'));
+      expect(steps.length).toBeGreaterThan(1);
+      expect(steps[steps.length - 1].next).toBeNull();
+    });
+
+    it('each step has description, actions, state, and next', () => {
+      const steps = Array.from(motorZPPSteps(side, 'Yes', 'E', 'INT'));
+      for (const step of steps) {
+        expect(step).toHaveProperty('description');
+        expect(step).toHaveProperty('actions');
+        expect(step).toHaveProperty('state');
+        expect(step).toHaveProperty('next');
+        expect(step.description).toHaveProperty('key');
+        expect(Array.isArray(step.actions)).toBe(true);
+        expect(step.state).toHaveProperty('zpp');
+      }
     });
   });
 });

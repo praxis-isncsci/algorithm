@@ -812,3 +812,27 @@ export function determineMotorZPP(
 
   return step.state.zpp.join(',');
 }
+
+/**
+ * Generator that yields each step of the motor ZPP calculation.
+ * Enables step-by-step execution for clinicians to see where each value is generated.
+ */
+export function* motorZPPSteps(
+  side: ExamSide,
+  voluntaryAnalContraction: BinaryObservation,
+  ais: string,
+  motorLevel: string,
+): Generator<Step> {
+  const initialState = getInitialState(
+    side,
+    voluntaryAnalContraction,
+    ais,
+    motorLevel,
+  );
+  let step = checkIfMotorZPPIsApplicable(initialState);
+  yield step;
+  while (step.next) {
+    step = step.next(step.state);
+    yield step;
+  }
+}
