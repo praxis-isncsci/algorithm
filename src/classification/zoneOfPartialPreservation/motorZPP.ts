@@ -798,19 +798,16 @@ export function determineMotorZPP(
   ais: string,
   motorLevel: string,
 ): string {
-  let step: Step = {
-    description: { key: 'motorZPPCheckIfMotorZPPIsApplicableDescription' },
-    actions: [],
-    state: getInitialState(side, voluntaryAnalContraction, ais, motorLevel),
-    next: checkIfMotorZPPIsApplicable,
-  };
+  const initialState = getInitialState(
+    side,
+    voluntaryAnalContraction,
+    ais,
+    motorLevel,
+  );
+  let step = checkIfMotorZPPIsApplicable(initialState);
 
   while (step.next) {
     step = step.next(step.state);
-
-    // ToDo: Add logger
-    // console.log(step.description);
-    // console.log(step.action);
   }
 
   return step.state.zpp.join(',');
