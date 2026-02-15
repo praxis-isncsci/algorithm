@@ -72,12 +72,118 @@ export type Step = {
 /*  Support methods                        */
 /* *************************************** */
 
+function createSideLevel(
+  side: ExamSide,
+  sensoryLevelName: SensoryLevel,
+  index: number,
+): SideLevel {
+  const motorLevelName: MotorLevel | null = MotorLevels.includes(
+    sensoryLevelName as MotorLevel,
+  )
+    ? (sensoryLevelName as MotorLevel)
+    : null;
+  return {
+    name: sensoryLevelName,
+    lightTouch:
+      sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
+    pinPrick:
+      sensoryLevelName === 'C1' ? '2' : side.pinPrick[sensoryLevelName],
+    motor: motorLevelName ? side.motor[motorLevelName] : null,
+    index,
+    next: null,
+    previous: null,
+  };
+}
+
+/** Creates SideLevel objects for each SensoryLevel from C1 through bottom. */
+function buildLevelsFromC1ToBottom(
+  side: ExamSide,
+  bottom: SensoryLevel,
+): SideLevel[] {
+  const levels: SideLevel[] = [];
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  for (let i = 0; i <= bottomIndex; i++) {
+    const sensoryLevelName = SensoryLevels[i];
+    levels.push(createSideLevel(side, sensoryLevelName, i));
+  }
+  return levels;
+}
+
+/** Links levels from top to bottom with next/previous. Returns topLevel and bottomLevel. */
+function linkLevelChain(
+  levels: SideLevel[],
+  top: SensoryLevel,
+  bottom: SensoryLevel,
+): { topLevel: SideLevel; bottomLevel: SideLevel } {
+  const topIndex = SensoryLevels.indexOf(top);
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  const topLevel = levels[topIndex];
+  const bottomLevel = levels[bottomIndex];
+
+  for (let i = topIndex; i <= bottomIndex; i++) {
+    const level = levels[i];
+    if (i > topIndex) {
+      const prev = levels[i - 1];
+      prev.next = level;
+      level.previous = prev;
+    }
+  }
+  return { topLevel, bottomLevel };
+}
+
+/** First level (in iteration order) that has * in lightTouch, pinPrick, or motor. */
+function findFirstLevelWithStar(levels: SideLevel[]): SideLevel | null {
+  for (const level of levels) {
+    if (
+      PATTERNS.hasVariableIndicator.test(level.lightTouch) ||
+      PATTERNS.hasVariableIndicator.test(level.pinPrick) ||
+      PATTERNS.hasVariableIndicator.test(level.motor ?? '')
+    ) {
+      return level;
+    }
+  }
+  return null;
+}
+
+/**
+ * Last level before the first non-normal value within the top-to-bottom range.
+ * If all levels in range are normal, returns bottomLevel.
+ */
+function findLastLevelWithConsecutiveNormalValues(
+  levels: SideLevel[],
+  top: SensoryLevel,
+  bottom: SensoryLevel,
+  bottomLevel: SideLevel,
+): SideLevel {
+  const topIndex = SensoryLevels.indexOf(top);
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  for (let i = topIndex; i <= bottomIndex; i++) {
+    const level = levels[i];
+    const sensoryNormal =
+      PATTERNS.normalSensory.test(level.lightTouch) &&
+      PATTERNS.normalSensory.test(level.pinPrick);
+    const motorNormal =
+      level.motor === null || PATTERNS.normalMotor.test(level.motor);
+    const isNormal = sensoryNormal && motorNormal;
+    if (!isNormal) {
+      return i > topIndex ? levels[i - 1] : bottomLevel;
+    }
+  }
+  return bottomLevel;
+}
+
+function findNonKeyMuscle(
+  levels: SideLevel[],
+  nonKeyMuscleName: MotorLevel | null,
+): SideLevel | null {
+  if (!nonKeyMuscleName) return null;
+  return levels.find((l) => l.name === nonKeyMuscleName) ?? null;
+}
+
 /*
- * Iterates down the side and builds a chain of `SideLevel` objects with only the levels that need to be checked.
- * It also maps the top, bottom, nonKeyMuscle, firstLevelWithStar, and lastLevelWithConsecutiveNormalValues.
- * Can throw the following exception:
- *   'Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues'
- *   This happens when the side has invalid or missing values or the provided top or bottom level are calculated incorrectly.
+ * Composes support functions to build the level chain and find top, bottom, nonKeyMuscle,
+ * firstLevelWithStar, and lastLevelWithConsecutiveNormalValues.
+ * Can throw: 'Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues'
  */
 function getLevelsRange(
   side: ExamSide,
@@ -91,72 +197,12 @@ function getLevelsRange(
     firstLevelWithStar: SideLevel | null;
     lastLevelWithConsecutiveNormalValues: SideLevel;
   } {
-  let currentLevel: SideLevel | null = null;
-  let topLevel: SideLevel | null = null;
-  let bottomLevel: SideLevel | null = null;
-  let nonKeyMuscle: SideLevel | null = null;
-  let firstLevelWithStar: SideLevel | null = null;
-  let lastLevelWithConsecutiveNormalValues: SideLevel | null = null;
-
-  for (let i = 0; i < SensoryLevels.length && !bottomLevel; i++) {
-    const sensoryLevelName = SensoryLevels[i];
-    const motorLevelName: MotorLevel | null = MotorLevels.includes(
-      sensoryLevelName as MotorLevel,
-    )
-      ? (sensoryLevelName as MotorLevel)
-      : null;
-
-    const level: SideLevel = {
-      name: sensoryLevelName,
-      lightTouch:
-        sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
-      pinPrick:
-        sensoryLevelName === 'C1' ? '2' : side.pinPrick[sensoryLevelName],
-      motor: motorLevelName ? side.motor[motorLevelName] : null,
-      index: i,
-      next: null,
-      previous: null,
-    };
-
-    if (
-      !firstLevelWithStar &&
-      (PATTERNS.hasVariableIndicator.test(level.lightTouch) ||
-        PATTERNS.hasVariableIndicator.test(level.pinPrick) ||
-        PATTERNS.hasVariableIndicator.test(level.motor ?? ''))
-    ) {
-      firstLevelWithStar = level;
-    }
-
-    if (
-      !lastLevelWithConsecutiveNormalValues &&
-      (!PATTERNS.normalSensory.test(level.lightTouch) ||
-        !PATTERNS.normalSensory.test(level.pinPrick) ||
-        !PATTERNS.normalMotor.test(level.motor ?? ''))
-    ) {
-      lastLevelWithConsecutiveNormalValues = currentLevel;
-    }
-
-    if (motorLevelName && motorLevelName === nonKeyMuscleName) {
-      nonKeyMuscle = level;
-    }
-
-    if (top === sensoryLevelName) {
-      currentLevel = level;
-      topLevel = level;
-    } else if (currentLevel) {
-      currentLevel.next = level;
-      level.previous = currentLevel;
-      currentLevel = level;
-    }
-
-    if (bottom === sensoryLevelName) {
-      bottomLevel = currentLevel;
-
-      if (!lastLevelWithConsecutiveNormalValues) {
-        lastLevelWithConsecutiveNormalValues = currentLevel;
-      }
-    }
-  }
+  const levels = buildLevelsFromC1ToBottom(side, bottom);
+  const { topLevel, bottomLevel } = linkLevelChain(levels, top, bottom);
+  const firstLevelWithStar = findFirstLevelWithStar(levels);
+  const lastLevelWithConsecutiveNormalValues =
+    findLastLevelWithConsecutiveNormalValues(levels, top, bottom, bottomLevel);
+  const nonKeyMuscle = findNonKeyMuscle(levels, nonKeyMuscleName);
 
   if (!topLevel || !bottomLevel || !lastLevelWithConsecutiveNormalValues) {
     throw new Error(
