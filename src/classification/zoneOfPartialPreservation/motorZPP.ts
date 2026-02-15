@@ -85,12 +85,12 @@ function getLevelsRange(
   bottom: SensoryLevel,
   nonKeyMuscleName: MotorLevel | null,
 ): {
-  topLevel: SideLevel;
-  bottomLevel: SideLevel;
-  nonKeyMuscle: SideLevel | null;
-  firstLevelWithStar: SideLevel | null;
-  lastLevelWithConsecutiveNormalValues: SideLevel;
-} {
+    topLevel: SideLevel;
+    bottomLevel: SideLevel;
+    nonKeyMuscle: SideLevel | null;
+    firstLevelWithStar: SideLevel | null;
+    lastLevelWithConsecutiveNormalValues: SideLevel;
+  } {
   let currentLevel: SideLevel | null = null;
   let topLevel: SideLevel | null = null;
   let bottomLevel: SideLevel | null = null;
@@ -203,6 +203,40 @@ function hasStarOnCurrentOrAboveLevel(
   return isInStarRange;
 }
 
+/** Non-key muscle overrides when it is >3 levels below the current level and we are testing for it. */
+function shouldOverrideWithNonKeyMuscle(
+  state: State,
+  currentLevel: SideLevel,
+): boolean {
+  if (!state.testNonKeyMuscle || !state.nonKeyMuscle) {
+    return false;
+  }
+  return state.nonKeyMuscle.index - currentLevel.index > 3;
+}
+
+function isAtTopOfRange(currentLevel: SideLevel, state: State): boolean {
+  return currentLevel.name === state.topLevel.name;
+}
+
+function buildMotorZPPLevelName(levelName: string, hasStar: boolean): string {
+  return `${levelName}${hasStar ? '*' : ''}`;
+}
+
+function createStep(
+  description: Step['description'],
+  actions: Step['actions'],
+  state: State,
+  updates: Partial<State>,
+  next: Step['next'],
+): Step {
+  return {
+    description,
+    actions,
+    state: { ...state, ...updates },
+    next,
+  };
+}
+
 /* *************************************** */
 /*  Motor ZPP calculation command methods  */
 /* *************************************** */
@@ -217,14 +251,14 @@ export function sortMotorZPP(state: State): Step {
       a === 'NA'
         ? -1
         : SensoryLevels.indexOf(
-            a.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
-          );
+          a.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+        );
     const bIndex =
       b === 'NA'
         ? -1
         : SensoryLevels.indexOf(
-            b.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
-          );
+          b.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+        );
     return aIndex - bIndex;
   });
 
@@ -253,31 +287,31 @@ export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
     !state.nonKeyMuscleHasBeenAdded &&
     state.nonKeyMuscle
     ? {
-        description,
-        actions: [
-          {
-            key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededAddNonKeyMuscleAction',
-          },
-        ],
-        state: {
-          ...state,
-          zpp: [...state.zpp, state.nonKeyMuscle.name],
+      description,
+      actions: [
+        {
+          key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededAddNonKeyMuscleAction',
         },
-        next: sortMotorZPP,
-      }
+      ],
+      state: {
+        ...state,
+        zpp: [...state.zpp, state.nonKeyMuscle.name],
+      },
+      next: sortMotorZPP,
+    }
     : {
-        description,
-        actions: [
-          {
-            key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction',
-          },
-        ],
-        state: {
-          ...state,
-          zpp: [...state.zpp],
+      description,
+      actions: [
+        {
+          key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction',
         },
-        next: sortMotorZPP,
-      };
+      ],
+      state: {
+        ...state,
+        zpp: [...state.zpp],
+      },
+      next: sortMotorZPP,
+    };
 }
 
 /*
@@ -307,7 +341,8 @@ export function checkForSensoryFunction(state: State): Step {
       pinPrick: currentLevel.pinPrick,
     },
   };
-  const isTopRange = currentLevel.name === state.topLevel.name;
+  const atTop = isAtTopOfRange(currentLevel, state);
+  const nextStep = atTop ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel;
 
   if (state.motorLevel.includes(currentLevel.name)) {
     const hasStar = hasStarOnCurrentOrAboveLevel(
@@ -315,11 +350,7 @@ export function checkForSensoryFunction(state: State): Step {
       state.lastLevelWithConsecutiveNormalValues,
       state.firstLevelWithStar,
     );
-    const motorZPPName = `${currentLevel.name}${hasStar ? '*' : ''}`;
-    const overrideWithNonKeyMuscle =
-      state.testNonKeyMuscle &&
-      state.nonKeyMuscle !== null &&
-      state.nonKeyMuscle.index - currentLevel.index > 3;
+    const override = shouldOverrideWithNonKeyMuscle(state, currentLevel);
     const actions: {
       key: Translation;
       params?: { [index: string]: string };
@@ -329,56 +360,51 @@ export function checkForSensoryFunction(state: State): Step {
         params: { levelName: currentLevel.name },
       },
       {
-        key: overrideWithNonKeyMuscle
+        key: override
           ? 'motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction'
           : 'motorZPPCheckForSensoryFunctionAddLevelAndContinueAction',
       },
     ];
-
-    if (isTopRange) {
+    if (atTop) {
       actions.push({
         key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction',
       });
     }
 
-    return {
+    return createStep(
       description,
       actions,
-      state: {
-        ...state,
-        zpp: overrideWithNonKeyMuscle
-          ? [...state.zpp]
-          : [motorZPPName, ...state.zpp],
+      state,
+      {
+        zpp: override ? [...state.zpp] : [buildMotorZPPLevelName(currentLevel.name, hasStar), ...state.zpp],
         currentLevel: currentLevel.previous,
-        addNonKeyMuscle: state.addNonKeyMuscle || overrideWithNonKeyMuscle,
+        addNonKeyMuscle: state.addNonKeyMuscle || override,
       },
-      next: isTopRange ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel,
-    };
+      nextStep,
+    );
   }
 
-  return isTopRange
-    ? {
-        description,
-        actions: [
-          { key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction' },
-        ],
-        state: { ...state, zpp: [...state.zpp] },
-        next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-      }
-    : {
-        description,
-        actions: [
-          {
-            key: 'motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction',
-          },
-        ],
-        state: {
-          ...state,
-          zpp: [...state.zpp],
-          currentLevel: currentLevel.previous,
-        },
-        next: checkLevel,
-      };
+  if (atTop) {
+    return createStep(
+      description,
+      [{ key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction' }],
+      state,
+      { zpp: [...state.zpp] },
+      nextStep,
+    );
+  }
+
+  return createStep(
+    description,
+    [
+      {
+        key: 'motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction',
+      },
+    ],
+    state,
+    { zpp: [...state.zpp], currentLevel: currentLevel.previous },
+    nextStep,
+  );
 }
 
 /*
@@ -405,143 +431,135 @@ export function checkForMotorFunction(state: State): Step {
   }
 
   const currentLevel = state.currentLevel;
-
   if (!currentLevel.motor) {
     throw new Error(
       'checkForMotorFunction :: state.currentLevel.motor is null.',
     );
   }
 
-  const isNonKeyMuscle = state.nonKeyMuscle
-    ? currentLevel.name === state.nonKeyMuscle.name
-    : false;
-  const overrideWithNonKeyMuscle =
-    state.testNonKeyMuscle &&
-    state.nonKeyMuscle &&
-    state.nonKeyMuscle.index - currentLevel.index > 3;
   const description: { key: Translation; params: { [key: string]: string } } = {
     key: 'motorZPPCheckForMotorFunctionDescription',
     params: { levelName: currentLevel.name, motor: currentLevel.motor },
   };
-  const isTopRangeLevel = currentLevel.name === state.topLevel.name;
+  const atTop = isAtTopOfRange(currentLevel, state);
+  const override = shouldOverrideWithNonKeyMuscle(state, currentLevel);
+  const isNonKeyMuscle = state.nonKeyMuscle?.name === currentLevel.name;
+  const nextWhenAtTop = addLowerNonKeyMuscleToMotorZPPIfNeeded;
+  const nextWhenNotAtTop = checkLevel;
+  const nextStep = atTop ? nextWhenAtTop : nextWhenNotAtTop;
 
+  const hasStar = hasStarOnCurrentOrAboveLevel(
+    currentLevel,
+    state.lastLevelWithConsecutiveNormalValues,
+    state.firstLevelWithStar,
+  );
+
+  const baseStateUpdates = {
+    currentLevel: currentLevel.previous,
+  };
+  const overrideStateUpdates = {
+    ...baseStateUpdates,
+    addNonKeyMuscle: true,
+  };
+  const addLevelStateUpdates = (zppAddition: string) => ({
+    ...baseStateUpdates,
+    zpp: [zppAddition, ...state.zpp],
+    nonKeyMuscleHasBeenAdded:
+      state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
+  });
+
+  // Case 1: Motor function (grades 1-5, NT**, 0**) – add level and stop
   if (PATTERNS.hasMotorValueExcludingZeroStar.test(currentLevel.motor)) {
-    const hasStar = hasStarOnCurrentOrAboveLevel(
-      currentLevel,
-      state.lastLevelWithConsecutiveNormalValues,
-      state.firstLevelWithStar,
+    if (override) {
+      return createStep(
+        description,
+        [
+          {
+            key: 'motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction',
+          },
+        ],
+        state,
+        { ...overrideStateUpdates, zpp: [...state.zpp] },
+        nextWhenAtTop,
+      );
+    }
+    return createStep(
+      description,
+      [{ key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction' }],
+      state,
+      addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
+      nextWhenAtTop,
     );
-
-    return overrideWithNonKeyMuscle
-      ? {
-          description,
-          actions: [
-            {
-              key: 'motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction',
-            },
-          ],
-          state: {
-            ...state,
-            zpp: [...state.zpp],
-            currentLevel: currentLevel.previous,
-            addNonKeyMuscle: true,
-          },
-          next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-        }
-      : {
-          description,
-          actions: [
-            { key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction' },
-          ],
-          state: {
-            ...state,
-            zpp: [`${currentLevel.name}${hasStar ? '*' : ''}`, ...state.zpp],
-            currentLevel: currentLevel.previous,
-            nonKeyMuscleHasBeenAdded:
-              state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
-          },
-          next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-        };
   }
 
+  // Case 2: NT or 0* – add level and continue (or override)
   if (PATTERNS.notTestedOrZeroStar.test(currentLevel.motor)) {
-    const actions: { key: Translation }[] = [
+    const rangeActions: { key: Translation }[] = [
       {
-        key: isTopRangeLevel
+        key: atTop
           ? 'motorZPPCheckForMotorFunctionStopAtTopAction'
           : 'motorZPPCheckForMotorFunctionContinueUntilTopAction',
       },
     ];
-
-    const hasStar = hasStarOnCurrentOrAboveLevel(
-      currentLevel,
-      state.lastLevelWithConsecutiveNormalValues,
-      state.firstLevelWithStar,
-    );
-
     if (hasStar) {
-      actions.push({ key: 'motorZPPCheckForMotorFunctionAddStarAction' });
+      rangeActions.push({ key: 'motorZPPCheckForMotorFunctionAddStarAction' });
     }
 
-    return overrideWithNonKeyMuscle
-      ? {
-          description,
-          actions: [
-            {
-              key: 'motorZPPCheckForMotorFunctionFunctionFoundButKeyMuscleOverrideAction',
-            },
-            ...actions,
-          ],
-          state: {
-            ...state,
-            zpp: [...state.zpp],
-            currentLevel: currentLevel.previous,
-            addNonKeyMuscle: true,
+    if (override) {
+      return createStep(
+        description,
+        [
+          {
+            key: 'motorZPPCheckForMotorFunctionFunctionFoundButKeyMuscleOverrideAction',
           },
-          next: isTopRangeLevel
-            ? addLowerNonKeyMuscleToMotorZPPIfNeeded
-            : checkLevel,
-        }
-      : {
-          description,
-          actions: [
-            {
-              key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue',
-            },
-            ...actions,
-          ],
-          state: {
-            ...state,
-            zpp: [`${currentLevel.name}${hasStar ? '*' : ''}`, ...state.zpp],
-            currentLevel: currentLevel.previous,
-            nonKeyMuscleHasBeenAdded:
-              state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
-          },
-          next: isTopRangeLevel
-            ? addLowerNonKeyMuscleToMotorZPPIfNeeded
-            : checkLevel,
-        };
-  }
-
-  if (currentLevel.name === state.topLevel.name) {
-    return {
+          ...rangeActions,
+        ],
+        state,
+        { ...overrideStateUpdates, zpp: [...state.zpp] },
+        nextStep,
+      );
+    }
+    return createStep(
       description,
-      actions: [
-        { key: 'motorZPPCheckForMotorFunctionTopOfRangeReachedStopAction' },
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue',
+        },
+        ...rangeActions,
       ],
-      state: { ...state, currentLevel: currentLevel.previous },
-      next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-    };
+      state,
+      addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
+      nextStep,
+    );
   }
 
-  return {
+  // Case 3: At top of range with no function – stop
+  if (atTop) {
+    return createStep(
+      description,
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionTopOfRangeReachedStopAction',
+        },
+      ],
+      state,
+      baseStateUpdates,
+      nextWhenAtTop,
+    );
+  }
+
+  // Case 4: No function found – continue
+  return createStep(
     description,
-    actions: [
-      { key: 'motorZPPCheckForMotorFunctionNoFunctionFoundContinueAction' },
+    [
+      {
+        key: 'motorZPPCheckForMotorFunctionNoFunctionFoundContinueAction',
+      },
     ],
-    state: { ...state, currentLevel: currentLevel.previous },
-    next: checkLevel,
-  };
+    state,
+    baseStateUpdates,
+    nextWhenNotAtTop,
+  );
 }
 
 /*
