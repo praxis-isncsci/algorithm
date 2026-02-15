@@ -49,7 +49,7 @@ export const newEmptyExam = (): Exam => {
   };
 }
 
-export function propagateSensoryValueFrom(side:ExamSide, level: SensoryLevel, value: SensoryPointValue) {
+export function propagateSensoryValueFrom(side: ExamSide, level: SensoryLevel, value: SensoryPointValue): void {
   for (let i = SensoryLevels.indexOf(level); i<SensoryLevels.length; i++) {
     const currentLevel = SensoryLevels[i];
 
@@ -62,7 +62,7 @@ export function propagateSensoryValueFrom(side:ExamSide, level: SensoryLevel, va
   }
 }
 
-export function propagateMotorValueFrom(side:ExamSide, level: MotorLevel, value: MotorMuscleValue) {
+export function propagateMotorValueFrom(side: ExamSide, level: MotorLevel, value: MotorMuscleValue): void {
   for (let i = MotorLevels.indexOf(level); i<MotorLevels.length; i++) {
     side.motor[MotorLevels[i]] = value;
   }

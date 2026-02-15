@@ -6,7 +6,7 @@
   "module": "./esm/ISNCSCI.js",
   "scripts": {
     "build": "rollup -c",
-    "test": "jest && eslint **/*.ts && cspell **",
+    "test": "jest && eslint \"src/**/*.ts\" \"specs/**/*.ts\" \"demo/**/*.ts\" && cspell **",
     "test:watch": "jest --watch"
   },
   "author": "Praxis Spinal Cord Institute",

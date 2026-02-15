@@ -1,8 +1,4 @@
-import { Exam } from "../../interfaces";
-import { newEmptyExam } from "../commonSpec";
-
 describe('asiaImpairmentScale', () => {
-  const exam: Exam = newEmptyExam();
   xit('temp', () => {
     expect(undefined).toBeDefined();
   })

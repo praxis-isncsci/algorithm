@@ -5,7 +5,7 @@
     "jest": true
   },
   "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
-  "ignorePatterns": ["**/*.d.ts", "**/*.js", "dist"],
+  "ignorePatterns": ["**/*.d.ts", "**/*.js", "dist", "cjs", "esm", "iife"],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "parserOptions": {
