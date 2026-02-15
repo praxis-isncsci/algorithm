@@ -67,10 +67,12 @@ export type State = {
   lastLevelWithConsecutiveNormalValues: SideLevel;
 };
 
+export type StepHandler = (state: State) => Step;
+
 export type Step = {
   description: { key: Translation; params?: { [key: string]: string } };
   actions: { key: Translation; params?: { [key: string]: string } }[];
-  next: ((state: State) => Step) | null;
+  next: StepHandler | null;
   state: State;
 };
 
