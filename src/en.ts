@@ -31,5 +31,33 @@ export default {
   motorZPPSortMotorZPPEnsureNAIsPlacedFirstAction: 'Ensure "NA" is placed first',
   motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededDescription: 'If the non-key muscle affects the AIS calculations, we add it to Motor ZPP.',
   motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededAddNonKeyMuscleAction: 'We add the lowest non-key muscle with motor function to the Motor ZPP',
-  motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction: 'The lowest non-key muscle either does not have an effect on the AIS or has already been added to Motor ZPP.'
+  motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction: 'The lowest non-key muscle either does not have an effect on the AIS or has already been added to Motor ZPP.',
+  // Sensory ZPP
+  sensoryZPPCheckIfSensoryZPPIsApplicableDescription:
+    'Check if Deep Anal Pressure and S4-5 allow Sensory ZPP calculation.',
+  sensoryZPPCheckIfSensoryZPPIsApplicableYesAction:
+    'DAP is "Yes". Sensory ZPP is "NA".',
+  sensoryZPPCheckIfSensoryZPPIsApplicableS4_5PreservedAction:
+    'S4-5 has preserved sensation. Sensory ZPP is "NA".',
+  sensoryZPPCheckIfSensoryZPPIsApplicableProceedAction:
+    'DAP is "No" or "NT" and S4-5 sensation is absent. Proceed to evaluate sacral level.',
+  sensoryZPPCheckSacralLevelDescription: 'Evaluate S4-5 sensory values.',
+  sensoryZPPCheckSacralLevelAddNAAction:
+    'Add "NA" to Sensory ZPP based on DAP and sacral result.',
+  sensoryZPPCheckSacralLevelNoNAAction:
+    'Do not add "NA". Proceed to iterate levels.',
+  sensoryZPPGetTopAndBottomLevelsForCheckDescription:
+    'Set search range from S3 to C1.',
+  sensoryZPPGetTopAndBottomLevelsForCheckRangeAction:
+    'Range: {{top}} (top) to {{bottom}} (bottom).',
+  sensoryZPPCheckLevelDescription:
+    'Check sensory function at {{levelName}} (LT: {{lightTouch}}, PP: {{pinPrick}}).',
+  sensoryZPPCheckLevelAddLevelAction: 'Add {{levelName}} to Sensory ZPP.',
+  sensoryZPPCheckLevelContinueAction: 'Continue to next level.',
+  sensoryZPPCheckLevelStopAction:
+    'Sensory function boundary found. Stop iteration.',
+  sensoryZPPCheckLevelReachedC1Action: 'Reached C1. Add C1 and complete.',
+  sensoryZPPSortSensoryZPPDescription: 'Sort Sensory ZPP.',
+  sensoryZPPSortSensoryZPPEnsureNAIsPlacedFirstAction:
+    'Ensure "NA" is placed first.',
 };
