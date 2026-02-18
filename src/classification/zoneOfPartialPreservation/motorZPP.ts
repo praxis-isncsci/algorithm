@@ -7,6 +7,7 @@ import {
   SensoryLevels,
 } from '../../interfaces';
 import { SideLevel, Translation } from '../common';
+import { createStep, Step, StepHandler } from '../common/step';
 import {
   MotorZPPError,
   MOTOR_ZPP_ERROR_MESSAGES,
@@ -67,14 +68,8 @@ export type State = {
   lastLevelWithConsecutiveNormalValues: SideLevel;
 };
 
-export type StepHandler = (state: State) => Step;
-
-export type Step = {
-  description: { key: Translation; params?: { [key: string]: string } };
-  actions: { key: Translation; params?: { [key: string]: string } }[];
-  next: StepHandler | null;
-  state: State;
-};
+export type MotorZPPStepHandler = StepHandler<State>;
+export type MotorZPPStep = Step<State>;
 
 /* *************************************** */
 /*  Support methods                        */
@@ -274,21 +269,6 @@ function buildMotorZPPLevelName(levelName: string, hasStar: boolean): string {
   return `${levelName}${hasStar ? '*' : ''}`;
 }
 
-function createStep(
-  description: Step['description'],
-  actions: Step['actions'],
-  state: State,
-  updates: Partial<State>,
-  next: Step['next'],
-): Step {
-  return {
-    description,
-    actions,
-    state: { ...state, ...updates },
-    next,
-  };
-}
-
 /* *************************************** */
 /*  Motor ZPP calculation command methods  */
 /* *************************************** */
@@ -297,7 +277,7 @@ function createStep(
  * This is the sixth and final step when calculating the motor ZPP.
  * Sorts the ZPP results ensuring the `NA` value, if available, is at the beginning of the list.
  */
-export function sortMotorZPP(state: State): Step {
+export function sortMotorZPP(state: State): MotorZPPStep {
   const zpp = [...state.zpp].sort((a, b) => {
     const aIndex =
       a === 'NA'
@@ -330,7 +310,7 @@ export function sortMotorZPP(state: State): Step {
  * It adds the non-key muscle to ZPP, it has not been added already and if one is available.
  * It sets `sortMotorZPP` as the next and final step.
  */
-export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
+export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): MotorZPPStep {
   const description: { key: Translation } = {
     key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededDescription',
   };
@@ -377,7 +357,7 @@ export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
  * Could throw the following error:
  *   - state.currentLevel is null. A SideLevel value is required.
  */
-export function checkForSensoryFunction(state: State): Step {
+export function checkForSensoryFunction(state: State): MotorZPPStep {
   if (!state.currentLevel) {
     throw new MotorZPPError(
       'CHECK_FOR_SENSORY_FUNCTION_CURRENT_LEVEL_REQUIRED',
@@ -415,6 +395,13 @@ export function checkForSensoryFunction(state: State): Step {
         key: override
           ? 'motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction'
           : 'motorZPPCheckForSensoryFunctionAddLevelAndContinueAction',
+        // Only add params when we actually add to ZPP (!override). The add action needs levelName
+        // to match the appended value (e.g. C5*). When overridden, we don't add anything.
+        ...(!override && {
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
+        }),
       },
     ];
     if (atTop) {
@@ -475,7 +462,7 @@ export function checkForSensoryFunction(state: State): Step {
  *   - state.currentLevel is null. A SideLevel value is required.
  *   - state.currentLevel.motor is null.
  */
-export function checkForMotorFunction(state: State): Step {
+export function checkForMotorFunction(state: State): MotorZPPStep {
   if (!state.currentLevel) {
     throw new MotorZPPError(
       'CHECK_FOR_MOTOR_FUNCTION_CURRENT_LEVEL_REQUIRED',
@@ -535,7 +522,14 @@ export function checkForMotorFunction(state: State): Step {
     }
     return createStep(
       description,
-      [{ key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction' }],
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction',
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
+        },
+      ],
       state,
       addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
       nextWhenAtTop,
@@ -574,6 +568,9 @@ export function checkForMotorFunction(state: State): Step {
       [
         {
           key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue',
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
         },
         ...rangeActions,
       ],
@@ -616,7 +613,7 @@ export function checkForMotorFunction(state: State): Step {
  * This is the fourth step when calculating the Motor ZPP.
  * Checks if it is a sensory or motor level. It then calls either `checkForMotorFunction` or `checkForSensoryFunction`.
  */
-export function checkLevel(state: State): Step {
+export function checkLevel(state: State): MotorZPPStep {
   return state.currentLevel?.motor
     ? checkForMotorFunction(state)
     : checkForSensoryFunction(state);
@@ -629,7 +626,7 @@ export function checkLevel(state: State): Step {
  * It also builds a chain of `SideLevels` with only the levels that need testing.
  * It sets `currentLevel = bottom` and a reference to `nonKeyMuscle` if one was specified.
  */
-export function getTopAndBottomLevelsForCheck(state: State): Step {
+export function getTopAndBottomLevelsForCheck(state: State): MotorZPPStep {
   const motorLevels = state.motorLevel
     .replace(PATTERNS.stripAsterisk, '')
     .split(',');
@@ -694,7 +691,7 @@ export function getTopAndBottomLevelsForCheck(state: State): Step {
  * The flag will be used in the next steps to let the algorithm know if the Motor ZPP levels detected need to be tested against the non-key muscle.
  * An AIS C or C* implies that there is sensory function at S4-5 and that the lowest non-key muscle could have influenced the AIS calculation.
  */
-export function checkLowerNonKeyMuscle(state: State): Step {
+export function checkLowerNonKeyMuscle(state: State): MotorZPPStep {
   // AIS C or C* implies that there is sensory function at S4-5 and that the lowest non-key muscle could have influenced the AIS calculation.
   const testNonKeyMuscle =
     state.side.lowestNonKeyMuscleWithMotorFunction !== null &&
@@ -725,7 +722,7 @@ export function checkLowerNonKeyMuscle(state: State): Step {
  * If the VAC is 'NT', we add 'NA' to the Motor ZPP and continue to check for the presence of a non-key muscle.
  * If the VAC is 'No', we leave the Motor ZPP empty and continue to check for the presence of a non-key muscle.
  */
-export function checkIfMotorZPPIsApplicable(state: State): Step {
+export function checkIfMotorZPPIsApplicable(state: State): MotorZPPStep {
   const description: { key: Translation } = {
     key: 'motorZPPCheckIfMotorZPPIsApplicableDescription',
   };
@@ -826,7 +823,7 @@ export function* motorZPPSteps(
   voluntaryAnalContraction: BinaryObservation,
   ais: string,
   motorLevel: string,
-): Generator<Step> {
+): Generator<MotorZPPStep> {
   const initialState = getInitialState(
     side,
     voluntaryAnalContraction,
