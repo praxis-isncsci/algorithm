@@ -67,14 +67,14 @@ The **Sensory Zone of Partial Preservation (Sensory ZPP)** identifies the most c
 | **name** | `checkSacralLevel` |
 | **purpose** | Evaluate S4-5 with `checkLevelForSensoryZPP`; add NA to zpp when DAP is NT or when DAP is No and sacral result indicates NA. |
 | **inputs** | `state.side`, `state.deepAnalPressure`, `state.variable` |
-| **outputs** | `state.zpp`, `state.variable` |
+| **outputs** | `state.zpp` (variable unchanged; sacral result not propagated) |
 | **explanation** | "Evaluate S4-5 sensory values. Add NA to Sensory ZPP when DAP is NT or when DAP is No and sacral sparing is absent or partial." |
 
 **Logic:**
 - Call `checkLevelForSensoryZPP(side, 'S4_5', variable)`.
 - If DAP is `NT` → push `'NA'` to zpp.
 - If DAP is `No` and (`!sacralResult.continue` or `sacralResult.level !== undefined`) → push `'NA'` to zpp.
-- `variable = sacralResult.variable`.
+- Do **not** propagate `sacralResult.variable`; keep `variable` unchanged (original did not pass sacral variable into S3→C1 loop).
 - `next = getTopAndBottomLevelsForCheck`.
 
 ---

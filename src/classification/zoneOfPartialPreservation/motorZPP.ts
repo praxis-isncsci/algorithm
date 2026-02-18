@@ -395,6 +395,13 @@ export function checkForSensoryFunction(state: State): MotorZPPStep {
         key: override
           ? 'motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction'
           : 'motorZPPCheckForSensoryFunctionAddLevelAndContinueAction',
+        // Only add params when we actually add to ZPP (!override). The add action needs levelName
+        // to match the appended value (e.g. C5*). When overridden, we don't add anything.
+        ...(!override && {
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
+        }),
       },
     ];
     if (atTop) {
@@ -515,7 +522,14 @@ export function checkForMotorFunction(state: State): MotorZPPStep {
     }
     return createStep(
       description,
-      [{ key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction' }],
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction',
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
+        },
+      ],
       state,
       addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
       nextWhenAtTop,
@@ -554,6 +568,9 @@ export function checkForMotorFunction(state: State): MotorZPPStep {
       [
         {
           key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue',
+          params: {
+            levelName: buildMotorZPPLevelName(currentLevel.name, hasStar),
+          },
         },
         ...rangeActions,
       ],

@@ -208,7 +208,7 @@ export function checkLevel(state: State): SensoryZPPStep {
         ? [
           {
             key: 'sensoryZPPCheckLevelAddLevelAction',
-            params: { levelName: currentLevel.name },
+            params: { levelName: result.level ?? currentLevel.name },
           },
           { key: 'sensoryZPPCheckLevelContinueAction' },
         ]
@@ -231,7 +231,7 @@ export function checkLevel(state: State): SensoryZPPStep {
     [
       {
         key: 'sensoryZPPCheckLevelAddLevelAction',
-        params: { levelName: currentLevel.name },
+        params: { levelName: result.level ?? currentLevel.name },
       },
       { key: 'sensoryZPPCheckLevelStopAction' },
     ],
@@ -300,7 +300,8 @@ export function checkSacralLevel(state: State): SensoryZPPStep {
     state: {
       ...state,
       zpp,
-      variable: sacralResult.variable,
+      // Do NOT propagate sacralResult.variable; original kept variable=false for S3→C1 loop
+      variable: state.variable,
     },
     next: getTopAndBottomLevelsForCheck,
   };

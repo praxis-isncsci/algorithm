@@ -130,6 +130,21 @@ describe('sensoryZPP', () => {
       expect(result).not.toContain('NA');
       expect(result).toContain('S2');
     });
+
+    it('does not propagate sacral variable to S3 and above (S4_5=0*/0*, S3=NT)', () => {
+      // S4_5=0*/0* would set variable=true in checkLevelForSensoryZPP, but original
+      // does NOT propagate that to the S3→C1 loop. S3 with NT should get S3 (no asterisk).
+      propagateSensoryValueFrom(side, 'S2', '0');
+      side.lightTouch.S4_5 = '0*';
+      side.pinPrick.S4_5 = '0*';
+      side.lightTouch.S3 = 'NT';
+      side.pinPrick.S3 = '0';
+
+      const result = determineSensoryZPP(side, 'No');
+      expect(result).toContain('NA');
+      expect(result).toContain('S3');
+      expect(result).not.toContain('S3*');
+    });
   });
 
   describe('checkLevelForSensoryZPP', () => {

@@ -12,19 +12,22 @@ export default {
   motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeBelowS1Action: 'Since there are not motor levels below S1, we make S1 the bottom of our range.',
   motorZPPCheckForMotorFunctionDescription: 'Check for motor function on {{levelName}}: {{motor}}.',
   motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction: 'Motor function was found but the lowest non-key muscle with motor function overrides it as it affects the AIS calculation for this case. We stop iterating.',
-  motorZPPCheckForMotorFunctionAddLevelAndStopAction: 'Motor function was found. We include the level in Motor ZPP and stop iterating.',
+  motorZPPCheckForMotorFunctionAddLevelAndStopAction:
+    'Motor function was found. We include {{levelName}} in Motor ZPP and stop iterating.',
   motorZPPCheckForMotorFunctionFunctionFoundButKeyMuscleOverrideAction:
     'Motor function marked as not normal was found but the lowest non-key muscle with motor function overrides it as it affects the AIS calculation for this case. We continue iterating.',
   motorZPPCheckForMotorFunctionStopAtTopAction: 'Because we have reached the top level in our range, we stop.',
   motorZPPCheckForMotorFunctionContinueUntilTopAction: 'Since we have not reached the top level of our range, we continue',
   motorZPPCheckForMotorFunctionAddStarAction: 'Since motor has a star on this level or above, we add a star to the result.',
-  motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue: 'Motor function marked as not normal was found. We include the level in Motor ZPP and continue.',
+  motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue:
+    'Motor function marked as not normal was found. We include {{levelName}} in Motor ZPP and continue.',
   motorZPPCheckForMotorFunctionNoFunctionFoundContinueAction: 'No motor function was found. We continue.',
   motorZPPCheckForMotorFunctionTopOfRangeReachedStopAction: 'We reached the top of the searchable range. We stop iterating. Next we will check the lowest non-key muscle with motor function.',
   motorZPPCheckForSensoryFunctionDescription: 'Check for sensory function on {{levelName}} (LT: {{lightTouch}} - PP: {{pinPrick}})',
   motorZPPCheckForSensoryFunctionLevelIncludedInMotorValuesAction: '{{levelName}} is included in motor values.',
   motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction: 'The value, however is overridden by the non-key muscle',
-  motorZPPCheckForSensoryFunctionAddLevelAndContinueAction: 'We add it to Motor ZPP and continue checking.',
+  motorZPPCheckForSensoryFunctionAddLevelAndContinueAction:
+    'We add {{levelName}} to Motor ZPP and continue checking.',
   motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction: 'We are a the top of the range, we stop.',
   motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction: 'No sensory function was found. We continue.',
   motorZPPSortMotorZPPDescription: 'Sort Motor ZPP',

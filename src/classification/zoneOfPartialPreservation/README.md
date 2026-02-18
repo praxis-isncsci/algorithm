@@ -92,9 +92,9 @@ Sensory ZPP is calculated when **Deep Anal Pressure (DAP)** is `No` or `NT` and 
 - Add **NA** to ZPP when:
   - DAP is **NT** (not testable), or
   - DAP is **No** and S4-5 indicates absent or partial sensation (sacral result suggests NA).
-- Update the `variable` flag if S4-5 has variable/non-normal values (e.g. NT, 0\*).
+- The sacral check does **not** propagate its `variable` result to the S3→C1 iteration; `variable` remains `false` when that loop starts (matching original behavior).
 
-**Outputs:** `zpp` may include `'NA'`; `variable` may be updated.
+**Outputs:** `zpp` may include `'NA'`; `variable` is unchanged (remains from prior step).
 
 **Next step:** `getTopAndBottomLevelsForCheck`.
 
@@ -133,7 +133,7 @@ Sensory ZPP is calculated when **Deep Anal Pressure (DAP)** is `No` or `NT` and 
 - **If current level is C1:** Add C1 to ZPP (per ISNCSCI, C1 is always included when we reach it). Proceed to sort.
 - **Otherwise:** Run the sensory check for this level:
   - If **both** light touch and pin prick are **absent** (0) → Continue to next level (no add).
-  - If **either** cannot be absent (e.g. 2, 1, NT**) → Add level to ZPP and **stop\*\* (sensory boundary found).
+  - If **either** cannot be absent (e.g. 2, 1, NT) → Add level to ZPP and **stop** (sensory boundary found).
   - If **either** is NT or has variable indicator → Add level (with \* if variable) and continue.
 - Advance `currentLevel` to the next level down (e.g. S3 → S2 → S1 → … → C2 → C1).
 
@@ -147,20 +147,20 @@ Sensory ZPP is calculated when **Deep Anal Pressure (DAP)** is `No` or `NT` and 
 
 ### Step 5: sortSensoryZPP
 
-**Purpose:** Sort the Sensory ZPP list so that NA (if present) appears first, followed by levels in anatomical order (caudal to rostral).
+**Purpose:** Sort the Sensory ZPP list so that NA (if present) appears first, followed by levels in anatomical order (rostral to caudal).
 
 **Inputs:** `zpp` list from previous steps.
 
 **Logic:**
 
 - Sort so **NA** is first (if it was added).
-- Then sort remaining levels by anatomical order (S3, S2, S1, L5, … C2, C1).
+- Then sort remaining levels by anatomical order (C1, C2, C3, C4, … L5, S1, S2, S3).
 
 **Outputs:** Final `zpp` list.
 
 **Next step:** `null` (algorithm complete).
 
-**Clinical note:** The final output is a comma-separated string, e.g. `"NA,S3,S2"` or `"S2,S1"`.
+**Clinical note:** The final output is a comma-separated string, e.g. `"NA,C1,C2"` or `"C1,C2"`.
 
 ---
 
