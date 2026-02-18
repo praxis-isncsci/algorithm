@@ -1,143 +1,292 @@
-import {BinaryObservation, ExamSide, MotorLevel, MotorLevels, SensoryLevel, SensoryLevels} from '../../interfaces';
-import {SideLevel, Translation} from '../common';
+import {
+  BinaryObservation,
+  ExamSide,
+  MotorLevel,
+  MotorLevels,
+  SensoryLevel,
+  SensoryLevels,
+} from '../../interfaces';
+import { SideLevel, Translation } from '../common';
+import {
+  MotorZPPError,
+  MOTOR_ZPP_ERROR_MESSAGES,
+} from './motorZPPErrors';
+
+export { MotorZPPError, MOTOR_ZPP_ERROR_MESSAGES };
+
+/* *************************************** */
+/*  Constants - Regex patterns              */
+/* *************************************** */
+
+const PATTERNS = {
+  /** Contains asterisk (variable/non-normal indicator) */
+  hasVariableIndicator: /\*/,
+  /** Normal sensory: 2 or ends with ** */
+  normalSensory: /(^2$)|(\*\*$)/,
+  /** Normal motor: 5 or ends with ** */
+  normalMotor: /(^5$)|(\*\*$)/,
+  /** Motor grade 0* (impaired with variable) */
+  motorZeroWithStar: /0\*/,
+  /** Digit followed by * (e.g. 1*, 2* in sensory) */
+  digitWithStar: /\d\*/,
+  /**
+   * Motor values indicating motor function (excludes 0 and 0* which mean no function).
+   * Matches: grades 1-5 (and variants like 1*, 2**, etc.), NT**, or 0**.
+   */
+  hasMotorValueExcludingZeroStar: /^[1-5]|^(?:NT|0)\*\*$/,
+  /** Not tested or 0*: NT, NT*, or 0* */
+  notTestedOrZeroStar: /^(NT\*?$)|(0\*$)/,
+  /** Levels below S1: S2, S3, or INT (independent of motor or sensory) */
+  levelBelowS1: /(S2|S3|INT)\*?(,|$)/,
+  /** AIS grade C or C* */
+  aisGradeC: /C/i,
+  /** Asterisk(s) to strip from level names */
+  stripAsterisk: /\*/g,
+  /** Single asterisk for replacement */
+  singleAsterisk: /\*/,
+} as const;
 
 /* *************************************** */
 /*  Types                                  */
 /* *************************************** */
 
 export type State = {
-  ais: string,
-  motorLevel: string,
-  voluntaryAnalContraction: BinaryObservation,
-  zpp: string[],
-  topLevel: SideLevel,
-  bottomLevel: SideLevel,
-  currentLevel: SideLevel | null,
-  side: ExamSide,
-  nonKeyMuscle: SideLevel | null,
-  nonKeyMuscleHasBeenAdded: boolean,
-  testNonKeyMuscle: boolean,
-  addNonKeyMuscle: boolean,
-  firstLevelWithStar: SideLevel | null,
-  lastLevelWithConsecutiveNormalValues: SideLevel,
-}
+  ais: string;
+  motorLevel: string;
+  voluntaryAnalContraction: BinaryObservation;
+  zpp: string[];
+  topLevel: SideLevel;
+  bottomLevel: SideLevel;
+  currentLevel: SideLevel | null;
+  side: ExamSide;
+  nonKeyMuscle: SideLevel | null;
+  nonKeyMuscleHasBeenAdded: boolean;
+  testNonKeyMuscle: boolean;
+  addNonKeyMuscle: boolean;
+  firstLevelWithStar: SideLevel | null;
+  lastLevelWithConsecutiveNormalValues: SideLevel;
+};
+
+export type StepHandler = (state: State) => Step;
 
 export type Step = {
-  description: {key: Translation, params?: {[key: string]: string}};
-  actions: {key: Translation, params?: {[key: string]: string}}[];
-  next: ((state: State) => Step) | null;
+  description: { key: Translation; params?: { [key: string]: string } };
+  actions: { key: Translation; params?: { [key: string]: string } }[];
+  next: StepHandler | null;
   state: State;
-}
+};
 
 /* *************************************** */
 /*  Support methods                        */
 /* *************************************** */
 
-/*
- * Iterates down the side and builds a chain of `SideLevel` objects with only the levels that need to be checked.
- * It also maps the top, bottom, nonKeyMuscle, firstLevelWithStar, and lastLevelWithConsecutiveNormalValues.
- * Can throw the following exception:
- *   'Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues'
- *   This happens when the side has invalid or missing values or the provided top or bottom level are calculated incorrectly.
- */
-function getLevelsRange(side: ExamSide, top: SensoryLevel, bottom: SensoryLevel, nonKeyMuscleName: MotorLevel | null): {
-  topLevel: SideLevel,
-  bottomLevel: SideLevel,
-  nonKeyMuscle: SideLevel | null,
-  firstLevelWithStar: SideLevel | null,
-  lastLevelWithConsecutiveNormalValues: SideLevel,
-} {
-  let currentLevel: SideLevel | null = null;
-  let topLevel: SideLevel | null = null;
-  let bottomLevel: SideLevel | null = null;
-  let nonKeyMuscle: SideLevel | null = null;
-  let firstLevelWithStar: SideLevel | null = null;
-  let lastLevelWithConsecutiveNormalValues: SideLevel | null = null;
+function createSideLevel(
+  side: ExamSide,
+  sensoryLevelName: SensoryLevel,
+  index: number,
+): SideLevel {
+  const motorLevelName: MotorLevel | null = MotorLevels.includes(
+    sensoryLevelName as MotorLevel,
+  )
+    ? (sensoryLevelName as MotorLevel)
+    : null;
+  return {
+    name: sensoryLevelName,
+    lightTouch:
+      sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
+    pinPrick:
+      sensoryLevelName === 'C1' ? '2' : side.pinPrick[sensoryLevelName],
+    motor: motorLevelName ? side.motor[motorLevelName] : null,
+    index,
+    next: null,
+    previous: null,
+  };
+}
 
-  for (let i = 0; i < SensoryLevels.length && !bottomLevel; i++) {
+/** Creates SideLevel objects for each SensoryLevel from C1 through bottom. */
+function buildLevelsFromC1ToBottom(
+  side: ExamSide,
+  bottom: SensoryLevel,
+): SideLevel[] {
+  const levels: SideLevel[] = [];
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  for (let i = 0; i <= bottomIndex; i++) {
     const sensoryLevelName = SensoryLevels[i];
-    const motorLevelName: MotorLevel | null = MotorLevels.includes(sensoryLevelName as MotorLevel) ? sensoryLevelName as MotorLevel : null;
+    levels.push(createSideLevel(side, sensoryLevelName, i));
+  }
+  return levels;
+}
 
-    const level: SideLevel = {
-      name: sensoryLevelName,
-      lightTouch: sensoryLevelName === 'C1' ? '2' : side.lightTouch[sensoryLevelName],
-      pinPrick: sensoryLevelName === 'C1' ? '2' : side.pinPrick[sensoryLevelName],
-      motor: motorLevelName ? side.motor[motorLevelName] : null,
-      index: i,
-      next: null,
-      previous: null,
-    };
+/** Links levels from top to bottom with next/previous. Returns topLevel and bottomLevel. */
+function linkLevelChain(
+  levels: SideLevel[],
+  top: SensoryLevel,
+  bottom: SensoryLevel,
+): { topLevel: SideLevel; bottomLevel: SideLevel } {
+  const topIndex = SensoryLevels.indexOf(top);
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  const topLevel = levels[topIndex];
+  const bottomLevel = levels[bottomIndex];
 
-    if (!firstLevelWithStar
-      && (
-        /\*/.test(level.lightTouch)
-        || /\*/.test(level.pinPrick)
-        || /\*/.test(level.motor ?? '')
-      )
-    ) {
-      firstLevelWithStar = level;
-    }
-
-    if (!lastLevelWithConsecutiveNormalValues
-      && (
-        !/(^2$)|(\*\*$)/.test(level.lightTouch)
-        || !/(^2$)|(\*\*$)/.test(level.pinPrick)
-        || !/(^5$)|(\*\*$)/.test(level.motor ?? '')
-      )
-    ) {
-      lastLevelWithConsecutiveNormalValues = currentLevel;
-    }
-
-    if (motorLevelName && motorLevelName === nonKeyMuscleName) {
-      nonKeyMuscle = level;
-    }
-
-    if (top === sensoryLevelName) {
-      currentLevel = level;
-      topLevel = level;
-    } else if (currentLevel) {
-      currentLevel.next = level;
-      level.previous = currentLevel;
-      currentLevel = level;
-    }
-
-    if (bottom === sensoryLevelName) {
-      bottomLevel = currentLevel;
-
-      if (!lastLevelWithConsecutiveNormalValues) {
-        lastLevelWithConsecutiveNormalValues = currentLevel;
-      }
+  for (let i = topIndex; i <= bottomIndex; i++) {
+    const level = levels[i];
+    if (i > topIndex) {
+      const prev = levels[i - 1];
+      prev.next = level;
+      level.previous = prev;
     }
   }
+  return { topLevel, bottomLevel };
+}
+
+/** First level (in iteration order) that has * in lightTouch, pinPrick, or motor. */
+function findFirstLevelWithStar(levels: SideLevel[]): SideLevel | null {
+  for (const level of levels) {
+    if (
+      PATTERNS.hasVariableIndicator.test(level.lightTouch) ||
+      PATTERNS.hasVariableIndicator.test(level.pinPrick) ||
+      PATTERNS.hasVariableIndicator.test(level.motor ?? '')
+    ) {
+      return level;
+    }
+  }
+  return null;
+}
+
+/**
+ * Last level before the first non-normal value within the top-to-bottom range.
+ * If all levels in range are normal, returns bottomLevel.
+ */
+function findLastLevelWithConsecutiveNormalValues(
+  levels: SideLevel[],
+  top: SensoryLevel,
+  bottom: SensoryLevel,
+  bottomLevel: SideLevel,
+): SideLevel {
+  const topIndex = SensoryLevels.indexOf(top);
+  const bottomIndex = SensoryLevels.indexOf(bottom);
+  for (let i = topIndex; i <= bottomIndex; i++) {
+    const level = levels[i];
+    const sensoryNormal =
+      PATTERNS.normalSensory.test(level.lightTouch) &&
+      PATTERNS.normalSensory.test(level.pinPrick);
+    const motorNormal =
+      level.motor === null || PATTERNS.normalMotor.test(level.motor);
+    const isNormal = sensoryNormal && motorNormal;
+    if (!isNormal) {
+      return i > topIndex ? levels[i - 1] : bottomLevel;
+    }
+  }
+  return bottomLevel;
+}
+
+function findNonKeyMuscle(
+  levels: SideLevel[],
+  nonKeyMuscleName: MotorLevel | null,
+): SideLevel | null {
+  if (!nonKeyMuscleName) return null;
+  return levels.find((l) => l.name === nonKeyMuscleName) ?? null;
+}
+
+/*
+ * Composes support functions to build the level chain and find top, bottom, nonKeyMuscle,
+ * firstLevelWithStar, and lastLevelWithConsecutiveNormalValues.
+ * Can throw: 'Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues'
+ */
+function getLevelsRange(
+  side: ExamSide,
+  top: SensoryLevel,
+  bottom: SensoryLevel,
+  nonKeyMuscleName: MotorLevel | null,
+): {
+    topLevel: SideLevel;
+    bottomLevel: SideLevel;
+    nonKeyMuscle: SideLevel | null;
+    firstLevelWithStar: SideLevel | null;
+    lastLevelWithConsecutiveNormalValues: SideLevel;
+  } {
+  const levels = buildLevelsFromC1ToBottom(side, bottom);
+  const { topLevel, bottomLevel } = linkLevelChain(levels, top, bottom);
+  const firstLevelWithStar = findFirstLevelWithStar(levels);
+  const lastLevelWithConsecutiveNormalValues =
+    findLastLevelWithConsecutiveNormalValues(levels, top, bottom, bottomLevel);
+  const nonKeyMuscle = findNonKeyMuscle(levels, nonKeyMuscleName);
 
   if (!topLevel || !bottomLevel || !lastLevelWithConsecutiveNormalValues) {
-    throw new Error('getLevelsRange :: Unable to determine the topLevel, bottomLevel, or lastLevelWithConsecutiveNormalValues');
+    throw new MotorZPPError('LEVELS_RANGE_UNDETERMINED');
   }
 
-  return {topLevel, bottomLevel, nonKeyMuscle, firstLevelWithStar, lastLevelWithConsecutiveNormalValues};
+  return {
+    topLevel,
+    bottomLevel,
+    nonKeyMuscle,
+    firstLevelWithStar,
+    lastLevelWithConsecutiveNormalValues,
+  };
 }
 
 /*
  * Returns `true` if there is a level flagged with `*` above the `currentLevel` or if `currentLevel` has it.
  */
-function hasStarOnCurrentOrAboveLevel(currentLevel: SideLevel, lastLevelWithConsecutiveNormalValues: SideLevel, firstLevelWithStar: SideLevel | null): boolean {
-  // Good example, case #93
+function hasStarOnCurrentOrAboveLevel(
+  currentLevel: SideLevel,
+  lastLevelWithConsecutiveNormalValues: SideLevel,
+  firstLevelWithStar: SideLevel | null,
+): boolean {
+  // An example of a case where firstLevelWithStar is null is case #93 in `specs/2019.json`.
   if (!firstLevelWithStar) {
     return false;
   }
 
   if (currentLevel.motor !== null) {
-    return /0\*/.test(currentLevel.motor);
+    return PATTERNS.motorZeroWithStar.test(currentLevel.motor);
   }
 
-  if (/\d\*/.test(currentLevel.lightTouch) || /\d\*/.test(currentLevel.pinPrick)) {
+  const hasStarOnCurrentLevel =
+    PATTERNS.digitWithStar.test(currentLevel.lightTouch) ||
+    PATTERNS.digitWithStar.test(currentLevel.pinPrick);
+  if (hasStarOnCurrentLevel) {
     return true;
   }
 
-  // return currentLevel.index <= lastLevelWithConsecutiveNormalValues.index && currentLevel.index >= firstLevelWithStar.index;
-  return /\d\*/.test(currentLevel.lightTouch)
-    || /\d\*/.test(currentLevel.pinPrick)
-    || (currentLevel.index <= lastLevelWithConsecutiveNormalValues.index && currentLevel.index >= firstLevelWithStar.index);
+  const isInStarRange =
+    currentLevel.index >= firstLevelWithStar.index &&
+    currentLevel.index <= lastLevelWithConsecutiveNormalValues.index;
+  return isInStarRange;
+}
+
+/** Non-key muscle overrides when it is >3 levels below the current level and we are testing for it. */
+function shouldOverrideWithNonKeyMuscle(
+  state: State,
+  currentLevel: SideLevel,
+): boolean {
+  if (!state.testNonKeyMuscle || !state.nonKeyMuscle) {
+    return false;
+  }
+  return state.nonKeyMuscle.index - currentLevel.index > 3;
+}
+
+function isAtTopOfRange(currentLevel: SideLevel, state: State): boolean {
+  return currentLevel.name === state.topLevel.name;
+}
+
+function buildMotorZPPLevelName(levelName: string, hasStar: boolean): string {
+  return `${levelName}${hasStar ? '*' : ''}`;
+}
+
+function createStep(
+  description: Step['description'],
+  actions: Step['actions'],
+  state: State,
+  updates: Partial<State>,
+  next: Step['next'],
+): Step {
+  return {
+    description,
+    actions,
+    state: { ...state, ...updates },
+    next,
+  };
 }
 
 /* *************************************** */
@@ -149,21 +298,31 @@ function hasStarOnCurrentOrAboveLevel(currentLevel: SideLevel, lastLevelWithCons
  * Sorts the ZPP results ensuring the `NA` value, if available, is at the beginning of the list.
  */
 export function sortMotorZPP(state: State): Step {
-  const zpp = state.zpp.sort((a, b) => {
-    const aIndex = a === 'NA' ? -1 : SensoryLevels.indexOf(a.replace(/\*/, '') as SensoryLevel);
-    const bIndex = b === 'NA' ? -1 : SensoryLevels.indexOf(b.replace(/\*/, '') as SensoryLevel);
+  const zpp = [...state.zpp].sort((a, b) => {
+    const aIndex =
+      a === 'NA'
+        ? -1
+        : SensoryLevels.indexOf(
+          a.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+        );
+    const bIndex =
+      b === 'NA'
+        ? -1
+        : SensoryLevels.indexOf(
+          b.replace(PATTERNS.singleAsterisk, '') as SensoryLevel,
+        );
     return aIndex - bIndex;
   });
 
   return {
-    description: {key: 'motorZPPSortMotorZPPDescription'},
-    actions: [{key: 'motorZPPSortMotorZPPEnsureNAIsPlacedFirstAction'}],
+    description: { key: 'motorZPPSortMotorZPPDescription' },
+    actions: [{ key: 'motorZPPSortMotorZPPEnsureNAIsPlacedFirstAction' }],
     state: {
       ...state,
       zpp,
     },
     next: null,
-  }
+  };
 }
 
 /*
@@ -172,12 +331,20 @@ export function sortMotorZPP(state: State): Step {
  * It sets `sortMotorZPP` as the next and final step.
  */
 export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
-  const description: {key: Translation} = {key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededDescription'};
+  const description: { key: Translation } = {
+    key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededDescription',
+  };
 
-  return state.addNonKeyMuscle && !state.nonKeyMuscleHasBeenAdded && state.nonKeyMuscle
+  return state.addNonKeyMuscle &&
+    !state.nonKeyMuscleHasBeenAdded &&
+    state.nonKeyMuscle
     ? {
       description,
-      actions: [{key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededAddNonKeyMuscleAction'}],
+      actions: [
+        {
+          key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededAddNonKeyMuscleAction',
+        },
+      ],
       state: {
         ...state,
         zpp: [...state.zpp, state.nonKeyMuscle.name],
@@ -186,7 +353,11 @@ export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
     }
     : {
       description,
-      actions: [{key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction'}],
+      actions: [
+        {
+          key: 'motorZPPAddLowerNonKeyMuscleToMotorZPPIfNeededIgnoreNonKeyMuscleAction',
+        },
+      ],
       state: {
         ...state,
         zpp: [...state.zpp],
@@ -208,11 +379,13 @@ export function addLowerNonKeyMuscleToMotorZPPIfNeeded(state: State): Step {
  */
 export function checkForSensoryFunction(state: State): Step {
   if (!state.currentLevel) {
-    throw new Error('checkForSensoryFunction :: state.currentLevel is null. A SideLevel value is required.');
+    throw new MotorZPPError(
+      'CHECK_FOR_SENSORY_FUNCTION_CURRENT_LEVEL_REQUIRED',
+    );
   }
 
   const currentLevel = state.currentLevel;
-  const description: {key: Translation, params: {[key: string]: string}} = {
+  const description: { key: Translation; params: { [key: string]: string } } = {
     key: 'motorZPPCheckForSensoryFunctionDescription',
     params: {
       levelName: currentLevel.name,
@@ -220,47 +393,70 @@ export function checkForSensoryFunction(state: State): Step {
       pinPrick: currentLevel.pinPrick,
     },
   };
-  const isTopRange = currentLevel.name === state.topLevel.name;
+  const atTop = isAtTopOfRange(currentLevel, state);
+  const nextStep = atTop ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel;
 
   if (state.motorLevel.includes(currentLevel.name)) {
-    const hasStar = hasStarOnCurrentOrAboveLevel(currentLevel, state.lastLevelWithConsecutiveNormalValues, state.firstLevelWithStar);
-    const motorZPPName = `${currentLevel.name}${hasStar ? '*' : ''}`;
-    const overrideWithNonKeyMuscle = state.testNonKeyMuscle && state.nonKeyMuscle !== null && state.nonKeyMuscle.index - currentLevel.index > 3;
-    const actions: {key: Translation, params?: {[index: string]: string}}[] = [
-      {key: 'motorZPPCheckForSensoryFunctionLevelIncludedInMotorValuesAction', params: {levelName: currentLevel.name}},
-      {key: overrideWithNonKeyMuscle ? 'motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction' : 'motorZPPCheckForSensoryFunctionAddLevelAndContinueAction'},
+    const hasStar = hasStarOnCurrentOrAboveLevel(
+      currentLevel,
+      state.lastLevelWithConsecutiveNormalValues,
+      state.firstLevelWithStar,
+    );
+    const override = shouldOverrideWithNonKeyMuscle(state, currentLevel);
+    const actions: {
+      key: Translation;
+      params?: { [index: string]: string };
+    }[] = [
+      {
+        key: 'motorZPPCheckForSensoryFunctionLevelIncludedInMotorValuesAction',
+        params: { levelName: currentLevel.name },
+      },
+      {
+        key: override
+          ? 'motorZPPCheckForSensoryFunctionLevelIncludedButOverriddenByNonKeyMuscleAction'
+          : 'motorZPPCheckForSensoryFunctionAddLevelAndContinueAction',
+      },
     ];
-
-    if (isTopRange) {
-      actions.push({key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction'});
+    if (atTop) {
+      actions.push({
+        key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction',
+      });
     }
 
-    return {
+    return createStep(
       description,
       actions,
-      state: {
-        ...state,
-        zpp: overrideWithNonKeyMuscle ? [...state.zpp] : [motorZPPName, ...state.zpp],
+      state,
+      {
+        zpp: override ? [...state.zpp] : [buildMotorZPPLevelName(currentLevel.name, hasStar), ...state.zpp],
         currentLevel: currentLevel.previous,
-        addNonKeyMuscle: state.addNonKeyMuscle || overrideWithNonKeyMuscle,
+        addNonKeyMuscle: state.addNonKeyMuscle || override,
       },
-      next: isTopRange ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel,
-    };
+      nextStep,
+    );
   }
 
-  return isTopRange
-    ? {
+  if (atTop) {
+    return createStep(
       description,
-      actions: [{key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction'}],
-      state: {...state, zpp: [...state.zpp]},
-      next:  addLowerNonKeyMuscleToMotorZPPIfNeeded,
-    }
-    : {
-      description,
-      actions: [{key: 'motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction'}],
-      state: {...state, zpp: [...state.zpp], currentLevel: currentLevel.previous},
-      next:  checkLevel,
-    };
+      [{ key: 'motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction' }],
+      state,
+      { zpp: [...state.zpp] },
+      nextStep,
+    );
+  }
+
+  return createStep(
+    description,
+    [
+      {
+        key: 'motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction',
+      },
+    ],
+    state,
+    { zpp: [...state.zpp], currentLevel: currentLevel.previous },
+    nextStep,
+  );
 }
 
 /*
@@ -281,106 +477,139 @@ export function checkForSensoryFunction(state: State): Step {
  */
 export function checkForMotorFunction(state: State): Step {
   if (!state.currentLevel) {
-    throw new Error('checkForMotorFunction :: state.currentLevel is null. A SideLevel value is required.');
+    throw new MotorZPPError(
+      'CHECK_FOR_MOTOR_FUNCTION_CURRENT_LEVEL_REQUIRED',
+    );
   }
 
   const currentLevel = state.currentLevel;
-
   if (!currentLevel.motor) {
-    throw new Error('checkForMotorFunction :: state.currentLevel.motor is null.');
+    throw new MotorZPPError('CHECK_FOR_MOTOR_FUNCTION_MOTOR_REQUIRED');
   }
 
-  const isNonKeyMuscle = state.nonKeyMuscle ? currentLevel.name === state.nonKeyMuscle.name : false;
-  const overrideWithNonKeyMuscle = state.testNonKeyMuscle && state.nonKeyMuscle && state.nonKeyMuscle.index - currentLevel.index > 3;
-  const description: {key: Translation, params: {[key: string]: string}} = {key: 'motorZPPCheckForMotorFunctionDescription', params: {levelName: currentLevel.name, motor: currentLevel.motor}};
-  const isTopRangeLevel = currentLevel.name === state.topLevel.name;
+  const description: { key: Translation; params: { [key: string]: string } } = {
+    key: 'motorZPPCheckForMotorFunctionDescription',
+    params: { levelName: currentLevel.name, motor: currentLevel.motor },
+  };
+  const atTop = isAtTopOfRange(currentLevel, state);
+  const override = shouldOverrideWithNonKeyMuscle(state, currentLevel);
+  const isNonKeyMuscle = state.nonKeyMuscle?.name === currentLevel.name;
+  const nextWhenAtTop = addLowerNonKeyMuscleToMotorZPPIfNeeded;
+  const nextWhenNotAtTop = checkLevel;
+  const nextStep = atTop ? nextWhenAtTop : nextWhenNotAtTop;
 
-  // This will skip 0*, which needs to be handled individually
-  if (/^[1-5]/.test(currentLevel.motor) || /^(NT|[0-4])\*\*$/.test(currentLevel.motor)) {
-    const hasStar = hasStarOnCurrentOrAboveLevel(currentLevel, state.lastLevelWithConsecutiveNormalValues, state.firstLevelWithStar);
+  const hasStar = hasStarOnCurrentOrAboveLevel(
+    currentLevel,
+    state.lastLevelWithConsecutiveNormalValues,
+    state.firstLevelWithStar,
+  );
 
-    return overrideWithNonKeyMuscle
-      ? {
+  const baseStateUpdates = {
+    currentLevel: currentLevel.previous,
+  };
+  const overrideStateUpdates = {
+    ...baseStateUpdates,
+    addNonKeyMuscle: true,
+  };
+  const addLevelStateUpdates = (zppAddition: string) => ({
+    ...baseStateUpdates,
+    zpp: [zppAddition, ...state.zpp],
+    nonKeyMuscleHasBeenAdded:
+      state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
+  });
+
+  // Case 1: Motor function (grades 1-5, NT**, 0**) – add level and stop
+  if (PATTERNS.hasMotorValueExcludingZeroStar.test(currentLevel.motor)) {
+    if (override) {
+      return createStep(
         description,
-        actions: [{key: 'motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction'}],
-        state: {
-          ...state,
-          zpp: [...state.zpp],
-          currentLevel: currentLevel.previous,
-          addNonKeyMuscle: true,
-        },
-        next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-      }
-      : {
-        description,
-        actions: [{key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction'}],
-        state: {
-          ...state,
-          zpp: [`${currentLevel.name}${hasStar ? '*' : ''}`, ...state.zpp],
-          currentLevel: currentLevel.previous,
-          nonKeyMuscleHasBeenAdded: state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
-        },
-        next: addLowerNonKeyMuscleToMotorZPPIfNeeded,
-      };
+        [
+          {
+            key: 'motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction',
+          },
+        ],
+        state,
+        { ...overrideStateUpdates, zpp: [...state.zpp] },
+        nextWhenAtTop,
+      );
+    }
+    return createStep(
+      description,
+      [{ key: 'motorZPPCheckForMotorFunctionAddLevelAndStopAction' }],
+      state,
+      addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
+      nextWhenAtTop,
+    );
   }
 
-  if (/^(NT\*?$)|(0\*$)/.test(currentLevel.motor)) {
-    const actions: {key: Translation}[] = [
-      {key: isTopRangeLevel ? 'motorZPPCheckForMotorFunctionStopAtTopAction' : 'motorZPPCheckForMotorFunctionContinueUntilTopAction'},
+  // Case 2: NT or 0* – add level and continue (or override)
+  if (PATTERNS.notTestedOrZeroStar.test(currentLevel.motor)) {
+    const rangeActions: { key: Translation }[] = [
+      {
+        key: atTop
+          ? 'motorZPPCheckForMotorFunctionStopAtTopAction'
+          : 'motorZPPCheckForMotorFunctionContinueUntilTopAction',
+      },
     ];
-
-    const hasStar = hasStarOnCurrentOrAboveLevel(currentLevel, state.lastLevelWithConsecutiveNormalValues, state.firstLevelWithStar);
-
     if (hasStar) {
-      actions.push({key: 'motorZPPCheckForMotorFunctionAddStarAction'});
+      rangeActions.push({ key: 'motorZPPCheckForMotorFunctionAddStarAction' });
     }
 
-    return overrideWithNonKeyMuscle
-      ? {
+    if (override) {
+      return createStep(
         description,
-        actions: [
-          {key: 'motorZPPCheckForMotorFunctionFunctionFoundButKeyMuscleOverrideAction'},
-          ...actions,
+        [
+          {
+            key: 'motorZPPCheckForMotorFunctionFunctionFoundButKeyMuscleOverrideAction',
+          },
+          ...rangeActions,
         ],
-        state: {
-          ...state,
-          zpp: [...state.zpp],
-          currentLevel: currentLevel.previous,
-          addNonKeyMuscle: true,
-        },
-        next:  isTopRangeLevel ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel,
-      }
-      : {
-        description,
-        actions: [
-          {key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue'},
-          ...actions,
-        ],
-        state: {
-          ...state,
-          zpp: [`${currentLevel.name}${hasStar ? '*' : ''}`, ...state.zpp],
-          currentLevel: currentLevel.previous,
-          nonKeyMuscleHasBeenAdded: state.nonKeyMuscleHasBeenAdded || isNonKeyMuscle,
-        },
-        next:  isTopRangeLevel ? addLowerNonKeyMuscleToMotorZPPIfNeeded : checkLevel,
-      };
-  }
-
-  if (currentLevel.name === state.topLevel.name) {
-    return {
+        state,
+        { ...overrideStateUpdates, zpp: [...state.zpp] },
+        nextStep,
+      );
+    }
+    return createStep(
       description,
-      actions: [{key: 'motorZPPCheckForMotorFunctionTopOfRangeReachedStopAction'}],
-      state: {...state, currentLevel: currentLevel.previous},
-      next:  addLowerNonKeyMuscleToMotorZPPIfNeeded,
-    };
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionAddLevelWithNormalFunctionAndContinue',
+        },
+        ...rangeActions,
+      ],
+      state,
+      addLevelStateUpdates(buildMotorZPPLevelName(currentLevel.name, hasStar)),
+      nextStep,
+    );
   }
 
-  return {
+  // Case 3: At top of range with no function – stop
+  if (atTop) {
+    return createStep(
+      description,
+      [
+        {
+          key: 'motorZPPCheckForMotorFunctionTopOfRangeReachedStopAction',
+        },
+      ],
+      state,
+      baseStateUpdates,
+      nextWhenAtTop,
+    );
+  }
+
+  // Case 4: No function found – continue
+  return createStep(
     description,
-    actions: [{key: 'motorZPPCheckForMotorFunctionNoFunctionFoundContinueAction'}],
-    state: {...state, currentLevel: currentLevel.previous},
-    next:  checkLevel,
-  };
+    [
+      {
+        key: 'motorZPPCheckForMotorFunctionNoFunctionFoundContinueAction',
+      },
+    ],
+    state,
+    baseStateUpdates,
+    nextWhenNotAtTop,
+  );
 }
 
 /*
@@ -401,32 +630,47 @@ export function checkLevel(state: State): Step {
  * It sets `currentLevel = bottom` and a reference to `nonKeyMuscle` if one was specified.
  */
 export function getTopAndBottomLevelsForCheck(state: State): Step {
-  const motorLevels = state.motorLevel.replace(/\*/g, '').split(',');
+  const motorLevels = state.motorLevel
+    .replace(PATTERNS.stripAsterisk, '')
+    .split(',');
   const top = motorLevels[0] as SensoryLevel;
   const lowestMotorLevel = motorLevels[motorLevels.length - 1];
 
   // We exclude not normal S1 values as there would be no propagation for that case
-  const hasMotorBelowS1 = /(S2|S3|INT)\*?(,|$)/.test(state.motorLevel);
+  const hasMotorBelowS1 = PATTERNS.levelBelowS1.test(state.motorLevel);
   const bottom = hasMotorBelowS1
-    ? lowestMotorLevel === 'INT' ? 'S3' : lowestMotorLevel as SensoryLevel
+    ? lowestMotorLevel === 'INT'
+      ? 'S3'
+      : (lowestMotorLevel as SensoryLevel)
     : 'S1';
-  const includeS10OrLowerAction: {key: Translation} = {
+  const includeS10OrLowerAction: { key: Translation } = {
     key: hasMotorBelowS1
       ? 'motorZPPGetTopAndBottomLevelsForCheckIncludeBelowS1Action'
-      : 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeBelowS1Action'
+      : 'motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeBelowS1Action',
   };
 
-  const {topLevel, bottomLevel, nonKeyMuscle, firstLevelWithStar, lastLevelWithConsecutiveNormalValues} = getLevelsRange(
+  const {
+    topLevel,
+    bottomLevel,
+    nonKeyMuscle,
+    firstLevelWithStar,
+    lastLevelWithConsecutiveNormalValues,
+  } = getLevelsRange(
     state.side,
     top,
     bottom,
-    state.side.lowestNonKeyMuscleWithMotorFunction ? state.side.lowestNonKeyMuscleWithMotorFunction as MotorLevel : null,
+    state.side.lowestNonKeyMuscleWithMotorFunction
+      ? (state.side.lowestNonKeyMuscleWithMotorFunction as MotorLevel)
+      : null,
   );
 
   return {
-    description: {key: 'motorZPPGetTopAndBottomLevelsForCheckDescription'},
+    description: { key: 'motorZPPGetTopAndBottomLevelsForCheckDescription' },
     actions: [
-      {key: 'motorZPPGetTopAndBottomLevelsForCheckRangeAction', params: {bottom: bottomLevel.name, top: topLevel.name}},
+      {
+        key: 'motorZPPGetTopAndBottomLevelsForCheckRangeAction',
+        params: { bottom: bottomLevel.name, top: topLevel.name },
+      },
       includeS10OrLowerAction,
     ],
     state: {
@@ -452,15 +696,17 @@ export function getTopAndBottomLevelsForCheck(state: State): Step {
  */
 export function checkLowerNonKeyMuscle(state: State): Step {
   // AIS C or C* implies that there is sensory function at S4-5 and that the lowest non-key muscle could have influenced the AIS calculation.
-  const testNonKeyMuscle = state.side.lowestNonKeyMuscleWithMotorFunction !== null && /C/i.test(state.ais);
+  const testNonKeyMuscle =
+    state.side.lowestNonKeyMuscleWithMotorFunction !== null &&
+    PATTERNS.aisGradeC.test(state.ais);
 
   return {
-    description: {key: 'motorZPPCheckLowerNonKeyMuscleDescription'},
+    description: { key: 'motorZPPCheckLowerNonKeyMuscleDescription' },
     actions: [
       {
         key: testNonKeyMuscle
           ? 'motorZPPCheckLowerNonKeyMuscleConsiderAction'
-          : 'motorZPPCheckLowerNonKeyMuscleDoNotConsiderAction'
+          : 'motorZPPCheckLowerNonKeyMuscleDoNotConsiderAction',
       },
     ],
     state: {
@@ -480,14 +726,16 @@ export function checkLowerNonKeyMuscle(state: State): Step {
  * If the VAC is 'No', we leave the Motor ZPP empty and continue to check for the presence of a non-key muscle.
  */
 export function checkIfMotorZPPIsApplicable(state: State): Step {
-  const description: {key: Translation} = {key: 'motorZPPCheckIfMotorZPPIsApplicableDescription'};
+  const description: { key: Translation } = {
+    key: 'motorZPPCheckIfMotorZPPIsApplicableDescription',
+  };
   const next = checkLowerNonKeyMuscle;
 
   if (state.voluntaryAnalContraction === 'Yes') {
     return {
       description,
-      actions: [{key: 'motorZPPCheckIfMotorZPPIsApplicableYesAction'}],
-      state: {...state, zpp: ['NA']},
+      actions: [{ key: 'motorZPPCheckIfMotorZPPIsApplicableYesAction' }],
+      state: { ...state, zpp: ['NA'] },
       next: null,
     };
   }
@@ -495,16 +743,16 @@ export function checkIfMotorZPPIsApplicable(state: State): Step {
   if (state.voluntaryAnalContraction === 'NT') {
     return {
       description,
-      actions: [{key: 'motorZPPCheckIfMotorZPPIsApplicableNTAction'}],
-      state: {...state, zpp: ['NA']},
+      actions: [{ key: 'motorZPPCheckIfMotorZPPIsApplicableNTAction' }],
+      state: { ...state, zpp: ['NA'] },
       next,
     };
   }
 
   return {
     description,
-    actions: [{key: 'motorZPPCheckIfMotorZPPIsApplicableNoAction'}],
-    state: {...state, zpp: [...state.zpp]},
+    actions: [{ key: 'motorZPPCheckIfMotorZPPIsApplicableNoAction' }],
+    state: { ...state, zpp: [...state.zpp] },
     next,
   };
 }
@@ -514,7 +762,12 @@ export function checkIfMotorZPPIsApplicable(state: State): Step {
  * It sets the top, bottom, and lastLevelWithConsecutiveNormalValues levels to C1,
  * the current level to null, and the zpp to empty array.
  */
-export function getInitialState(side: ExamSide, voluntaryAnalContraction: BinaryObservation, ais: string, motorLevel: string): State {
+export function getInitialState(
+  side: ExamSide,
+  voluntaryAnalContraction: BinaryObservation,
+  ais: string,
+  motorLevel: string,
+): State {
   const c1: SideLevel = {
     name: 'C1',
     lightTouch: '2',
@@ -527,7 +780,7 @@ export function getInitialState(side: ExamSide, voluntaryAnalContraction: Binary
 
   return {
     ais,
-    motorLevel: motorLevel.replace(/\*/g, ''),
+    motorLevel: motorLevel.replace(PATTERNS.stripAsterisk, ''),
     voluntaryAnalContraction,
     zpp: [],
     topLevel: c1,
@@ -543,21 +796,47 @@ export function getInitialState(side: ExamSide, voluntaryAnalContraction: Binary
   };
 }
 
-export function determineMotorZPP(side: ExamSide, voluntaryAnalContraction: BinaryObservation, ais: string, motorLevel: string): string {
-  let step: Step = {
-    description: {key: 'motorZPPCheckIfMotorZPPIsApplicableDescription'},
-    actions: [],
-    state: getInitialState(side, voluntaryAnalContraction, ais, motorLevel),
-    next: checkIfMotorZPPIsApplicable,
-  };
+export function determineMotorZPP(
+  side: ExamSide,
+  voluntaryAnalContraction: BinaryObservation,
+  ais: string,
+  motorLevel: string,
+): string {
+  const initialState = getInitialState(
+    side,
+    voluntaryAnalContraction,
+    ais,
+    motorLevel,
+  );
+  let step = checkIfMotorZPPIsApplicable(initialState);
 
   while (step.next) {
     step = step.next(step.state);
-
-    // ToDo: Add logger
-    // console.log(step.description);
-    // console.log(step.action);
   }
 
   return step.state.zpp.join(',');
+}
+
+/**
+ * Generator that yields each step of the motor ZPP calculation.
+ * Enables step-by-step execution for clinicians to see where each value is generated.
+ */
+export function* motorZPPSteps(
+  side: ExamSide,
+  voluntaryAnalContraction: BinaryObservation,
+  ais: string,
+  motorLevel: string,
+): Generator<Step> {
+  const initialState = getInitialState(
+    side,
+    voluntaryAnalContraction,
+    ais,
+    motorLevel,
+  );
+  let step = checkIfMotorZPPIsApplicable(initialState);
+  yield step;
+  while (step.next) {
+    step = step.next(step.state);
+    yield step;
+  }
 }
