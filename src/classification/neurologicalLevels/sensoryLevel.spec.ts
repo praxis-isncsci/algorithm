@@ -205,8 +205,9 @@ describe('checkSensoryLevel errors', () => {
   });
 
   it('does not throw when LT=NT and PP=0 (NT matches NTNotVariableSensory)', () => {
-    // Documents that (NT, 0) returns ntNotVariable; the NT_BRANCH_UNMATCHED
-    // throw is unreachable with valid SensoryPointValue.
+    // Documents that with LT=NT and PP=0 the abnormal branch is taken first
+    // (since PP='0' is abnormal), so the NT_BRANCH_UNMATCHED throw is
+    // unreachable with valid SensoryPointValue.
     const side = newEmptySide();
     side.lightTouch.C2 = 'NT';
     side.pinPrick.C2 = '0';
