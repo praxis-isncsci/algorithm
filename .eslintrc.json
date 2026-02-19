@@ -14,7 +14,7 @@
   },
   "root": true,
   "rules": {
-    "@typescript-eslint/indent": ["error", 2],
+    "@typescript-eslint/indent": "off",
     "no-multiple-empty-lines": ["error", { "max": 1, "maxEOF": 0 }],
     "no-trailing-spaces": "error"
   }
