@@ -104,9 +104,9 @@ export default {
   sensoryLevelCheckLevelNTStarAction:
     'NT* at next level. Add {{levelName}}* and stop.',
   sensoryLevelCheckLevelNTVariableAction:
-    'NT with variable sensory. Add level and continue.',
+    'NT with variable sensory. Add {{levelName}} and continue.',
   sensoryLevelCheckLevelNTNotVariableAction:
-    'NT with non-variable sensory. Add level and continue.',
+    'NT with non-variable sensory. Add {{levelName}} and continue.',
   sensoryLevelCheckLevelOtherVariableAction:
     'Variable sensory at next level. Continue.',
   sensoryLevelCheckLevelReachedEndAction: 'Reached S4_5. Add {{intLevel}}.',
