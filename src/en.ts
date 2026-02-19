@@ -20,7 +20,7 @@ export default {
   motorZPPGetTopAndBottomLevelsForCheckIncludeBelowS1Action:
     'Since there are motor levels below S1, the bottom of our range is determined by the lowest Motor Level.',
   motorZPPGetTopAndBottomLevelsForCheckDoNotIncludeBelowS1Action:
-    'Since there are not motor levels below S1, we make S1 the bottom of our range.',
+    'Since there are no motor levels below S1, we make S1 the bottom of our range.',
   motorZPPCheckForMotorFunctionDescription:
     'Check for motor function on {{levelName}}: {{motor}}.',
   motorZPPCheckForMotorFunctionNonKeyMuscleOverrideAndStopAction:
@@ -50,7 +50,7 @@ export default {
   motorZPPCheckForSensoryFunctionAddLevelAndContinueAction:
     'We add {{levelName}} to Motor ZPP and continue checking.',
   motorZPPCheckForSensoryFunctionTopOfRangeReachedStopAction:
-    'We are a the top of the range, we stop.',
+    'We are at the top of the range, we stop.',
   motorZPPCheckForSensoryFunctionNoSensoryFunctionFoundContinueAction:
     'No sensory function was found. We continue.',
   motorZPPSortMotorZPPDescription: 'Sort Motor ZPP',
@@ -94,7 +94,7 @@ export default {
   sensoryLevelInitializeSensoryLevelIterationDescription:
     'Initialize sensory level calculation. Iterate from C1 toward S4_5.',
   sensoryLevelInitializeSensoryLevelIterationAction:
-    'Set levels to empty, variable to false.',
+    'Set levels to empty, variable to false, and currentIndex to 0.',
   sensoryLevelCheckLevelDescription:
     'Check sensory function at {{levelName}} (LT: {{lightTouch}}, PP: {{pinPrick}}).',
   sensoryLevelCheckLevelBothNormalAction:

@@ -3,6 +3,7 @@ import {
   checkSensoryLevel,
   determineSensoryLevel,
   sensoryLevelSteps,
+  SensoryLevelCheckBranch,
   SensoryLevelError,
 } from './sensoryLevel';
 import {
@@ -12,9 +13,11 @@ import {
 } from '../commonSpec';
 import { CheckLevelResult } from '../common';
 
+type TestExpected = CheckLevelResult & { branch: SensoryLevelCheckBranch };
+
 type Test = {
   cases: { x: SensoryPointValue; y: SensoryPointValue }[];
-  expected: CheckLevelResult;
+  expected: TestExpected;
 };
 
 const contains = (
@@ -53,7 +56,12 @@ const tests: Test[] = [
   {
     // 64 tests
     cases: allTests.filter((test) => contains(test, ['0', '1', '0*', '1*'])),
-    expected: { continue: false, level: currentLevel, variable: false },
+    expected: {
+      continue: false,
+      level: currentLevel,
+      variable: false,
+      branch: 'abnormal',
+    },
   },
   {
     // 11 tests
@@ -61,7 +69,12 @@ const tests: Test[] = [
       (test) =>
         contains(test, ['NT*']) && !contains(test, ['0', '1', '0*', '1*']),
     ),
-    expected: { continue: false, level: currentLevel + '*', variable: true },
+    expected: {
+      continue: false,
+      level: currentLevel + '*',
+      variable: true,
+      branch: 'ntStar',
+    },
   },
   {
     // 5 tests
@@ -70,19 +83,29 @@ const tests: Test[] = [
         (contains(test, ['NT']) && contains(test, ['2', 'NT**'])) ||
         (test.x === 'NT' && test.y === 'NT'),
     ),
-    expected: { continue: true, level: currentLevel, variable: false },
+    expected: {
+      continue: true,
+      level: currentLevel,
+      variable: false,
+      branch: 'ntNotVariable',
+    },
   },
   {
     // 4 tests
     cases: allTests.filter(
       (test) => contains(test, ['NT']) && contains(test, ['0**', '1**']),
     ),
-    expected: { continue: true, level: currentLevel, variable: true },
+    expected: {
+      continue: true,
+      level: currentLevel,
+      variable: true,
+      branch: 'ntVariable',
+    },
   },
   {
     // 1 test
     cases: allTests.filter((test) => test.x === '2' && test.y === '2'),
-    expected: { continue: true, variable: false },
+    expected: { continue: true, variable: false, branch: 'bothNormal' },
   },
   {
     // 15 tests
@@ -91,7 +114,7 @@ const tests: Test[] = [
         contains(test, ['0**', '1**', 'NT**']) &&
         !contains(test, ['0', '1', '0*', '1*', 'NT*', 'NT']),
     ),
-    expected: { continue: true, variable: true },
+    expected: { continue: true, variable: true, branch: 'otherVariable' },
   },
 ];
 
@@ -102,7 +125,7 @@ const checkSensoryLevelTest = (
   side: ExamSide,
   pinPrick: SensoryPointValue,
   lightTouch: SensoryPointValue,
-  expected: CheckLevelResult,
+  expected: TestExpected,
 ): void => {
   it(`pinPrick = ${pinPrick}; lightTouch = ${lightTouch};`, () => {
     side.pinPrick[nextLevel] = pinPrick;
@@ -115,6 +138,7 @@ const checkSensoryLevelTest = (
     }
     expect(result.continue).toBe(expected.continue);
     expect(result.variable).toBe(expected.variable);
+    expect(result.branch).toBe(expected.branch);
   });
   allTestedValues.push(pinPrick + lightTouch + variable);
 };
@@ -141,12 +165,13 @@ describe('checkSensoryLevel', () => {
   // 100 tests
   describe(`variable = true`, () => {
     for (const test of tests) {
-      const expected = {
+      const expected: TestExpected = {
         continue: test.expected.continue,
         level: test.expected.level
           ? test.expected.level + (test.expected.level[2] === '*' ? '' : '*')
           : undefined,
         variable: true,
+        branch: test.expected.branch,
       };
       describe(JSON.stringify(expected), () => {
         const side = newEmptySide();
@@ -179,22 +204,18 @@ describe('checkSensoryLevel errors', () => {
     if (err) expect(err.code).toBe('INVALID_NEXT_LEVEL');
   });
 
-  it('throws NT_BRANCH_UNMATCHED when LT is NT and PP is not in NTVariableSensory or NTNotVariableSensory', () => {
-    // Per reviewer: LT='NT', PP='0' (0 not in 0**, 1**, 2, NT, NT**).
-    // However, when LT='NT', NT matches NTNotVariableSensory, so the error is
-    // unreachable with valid SensoryPointValue. Use jest.spyOn to stub the
-    // module's internal behavior and force the else branch.
+  it('does not throw when LT=NT and PP=0 (NT matches NTNotVariableSensory)', () => {
+    // Documents that (NT, 0) returns ntNotVariable; the NT_BRANCH_UNMATCHED
+    // throw is unreachable with valid SensoryPointValue.
     const side = newEmptySide();
     side.lightTouch.C2 = 'NT';
     side.pinPrick.C2 = '0';
-
-    // Stub side to return values that bypass the normal checks: we need
-    // getter to return something that makes NTNotVariableSensory false for 'NT'.
-    // Since we can't mock internal functions, we verify the error code exists
-    // and that (NT, 0) does not throw (NT matches NTNotVariableSensory).
     expect(() => checkSensoryLevel(side, 'C1', 'C2', false)).not.toThrow();
+  });
 
-    // Verify SensoryLevelError supports NT_BRANCH_UNMATCHED (defensive code path)
+  it('SensoryLevelError supports NT_BRANCH_UNMATCHED code', () => {
+    // Verifies the error code exists for defensive error handling (throw path
+    // is unreachable with valid SensoryPointValue).
     const err = new SensoryLevelError('NT_BRANCH_UNMATCHED');
     expect(err.code).toBe('NT_BRANCH_UNMATCHED');
   });

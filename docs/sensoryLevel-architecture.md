@@ -108,18 +108,18 @@ The algorithm iterates from C1 toward S4_5, checking each level against the next
 
 ## 4. checkSensoryLevel Logic (Preserved)
 
-`checkSensoryLevel(side, level, nextLevel, variable)` returns `CheckLevelResult`. It evaluates LT and PP at **nextLevel** (not at level).
+`checkSensoryLevel(side, level, nextLevel, variable)` returns `SensoryLevelCheckResult`, which extends `CheckLevelResult` with a `branch` property. The `branch` identifies which action key to use in the step-based UI (e.g. `sensoryLevelCheckLevelBothNormalAction`, `sensoryLevelCheckLevelAbnormalAction`). It evaluates LT and PP at **nextLevel** (not at level).
 
-| Condition                                                                 | Result                                                                     |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `nextLevel === 'C1'`                                                      | Throw: invalid arguments                                                   |
-| LT and PP both `'2'`                                                      | `{ continue: true, variable }`                                             |
-| Either LT or PP is abnormal (`0`, `1`, `0*`, `1*`)                        | `{ continue: false, level: level + (variable ? '*' : ''), variable }`      |
-| Either LT or PP is `'NT*'`                                                | `{ continue: false, level: level + '*', variable: true }`                  |
-| LT or PP is `'NT'` and either is NTVariableSensory (`0**`, `1**`)         | `{ continue: true, level: level + (variable ? '*' : ''), variable: true }` |
-| LT or PP is `'NT'` and either is NTNotVariableSensory (`2`, `NT`, `NT**`) | `{ continue: true, level: level + (variable ? '*' : ''), variable }`       |
-| LT or PP is `'NT'` and neither branch matches                             | Throw                                                                      |
-| Else (e.g. `0**`, `1**`, `NT**` without `NT`)                             | `{ continue: true, variable: true }`                                       |
+| Condition                                                                 | Result                                                                     | Branch          |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------- |
+| `nextLevel === 'C1'`                                                      | Throw: invalid arguments                                                   | —               |
+| LT and PP both `'2'`                                                      | `{ continue: true, variable }`                                             | `bothNormal`    |
+| Either LT or PP is abnormal (`0`, `1`, `0*`, `1*`)                        | `{ continue: false, level: level + (variable ? '*' : ''), variable }`      | `abnormal`      |
+| Either LT or PP is `'NT*'`                                                | `{ continue: false, level: level + '*', variable: true }`                  | `ntStar`        |
+| LT or PP is `'NT'` and either is NTVariableSensory (`0**`, `1**`)         | `{ continue: true, level: level + (variable ? '*' : ''), variable: true }` | `ntVariable`    |
+| LT or PP is `'NT'` and either is NTNotVariableSensory (`2`, `NT`, `NT**`) | `{ continue: true, level: level + (variable ? '*' : ''), variable }`       | `ntNotVariable` |
+| LT or PP is `'NT'` and neither branch matches                             | Throw                                                                      | —               |
+| Else (e.g. `0**`, `1**`, `NT**` without `NT`)                             | `{ continue: true, variable: true }`                                       | `otherVariable` |
 
 ---
 
@@ -205,14 +205,16 @@ src/classification/neurologicalLevels/
 
 ### Shared vs module-specific
 
-| Item                | Location                     | Rationale                              |
-| ------------------- | ---------------------------- | -------------------------------------- |
-| `Step` type         | `common/step.ts`             | Reusable                               |
-| `StepHandler<S>`    | `common/step.ts`             | Generic handler                        |
-| `createStep`        | `common/step.ts`             | Shared helper                          |
-| `CheckLevelResult`  | `common.ts`                  | Already shared                         |
-| `checkSensoryLevel` | `sensoryLevel.ts` or support | Pure function; preserve exact behavior |
-| `State`             | `sensoryLevel.ts`            | Sensory-level-specific state           |
+| Item                      | Location                     | Rationale                              |
+| ------------------------- | ---------------------------- | -------------------------------------- |
+| `Step` type               | `common/step.ts`             | Reusable                               |
+| `StepHandler<S>`          | `common/step.ts`             | Generic handler                        |
+| `createStep`              | `common/step.ts`             | Shared helper                          |
+| `CheckLevelResult`        | `common.ts`                  | Already shared                         |
+| `SensoryLevelCheckResult` | `sensoryLevel.ts`            | Extends CheckLevelResult with branch   |
+| `CheckLevelActionBranch`  | `sensoryLevel.ts`            | Branch union for step action lookup    |
+| `checkSensoryLevel`       | `sensoryLevel.ts` or support | Pure function; preserve exact behavior |
+| `State`                   | `sensoryLevel.ts`            | Sensory-level-specific state           |
 
 ---
 
@@ -231,9 +233,6 @@ sensoryLevelCheckLevelNTVariableAction: 'NT with variable sensory. Add level and
 sensoryLevelCheckLevelNTNotVariableAction: 'NT with non-variable sensory. Add level and continue.',
 sensoryLevelCheckLevelOtherVariableAction: 'Variable sensory at next level. Continue.',
 sensoryLevelCheckLevelReachedEndAction: 'Reached S4_5. Add INT.',
-
-sensoryLevelAddIntactAndCompleteDescription: 'Reached end of dermatome series. Add INT to sensory level.',
-sensoryLevelAddIntactAndCompleteAction: 'Add INT{{variable}}.',
 ```
 
 ---
@@ -268,5 +267,6 @@ This architecture preserves the existing `determineSensoryLevel` and `checkSenso
 - Same `variable` accumulation (`variable = variable || !!result.variable`).
 - Same handling of end-of-series: add `INT` or `INT*`.
 - Same output format: comma-separated string of levels.
+- The `branch` property was added to the return value for step action lookup in the step-based UI; it does not change algorithm behavior.
 
 No algorithm behavior is modified; only the control flow is expressed as an explicit step chain.

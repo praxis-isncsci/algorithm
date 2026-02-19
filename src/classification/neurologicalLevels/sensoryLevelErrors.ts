@@ -4,9 +4,9 @@
  */
 export const SENSORY_LEVEL_ERROR_MESSAGES = {
   INVALID_NEXT_LEVEL:
-    'checkSensoryLevel: invalid arguments level: {{level}} nextLevel: {{nextLevel}}',
+    'checkSensoryLevel :: invalid arguments level: {{level}} nextLevel: {{nextLevel}}',
   NT_BRANCH_UNMATCHED:
-    'checkSensoryLevel: NT branch did not match expected values',
+    'checkSensoryLevel :: NT branch did not match expected values',
 } as const;
 
 export type SensoryLevelErrorCode = keyof typeof SENSORY_LEVEL_ERROR_MESSAGES;

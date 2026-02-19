@@ -25,7 +25,23 @@ const NTNotVariableSensory = (value: SensoryPointValue): boolean =>
   ['2', 'NT', 'NT**'].includes(value);
 
 /* *************************************** */
-/*  checkSensoryLevel (preserved exactly)  */
+/*  Types (branch for action lookup)       */
+/* *************************************** */
+
+export type SensoryLevelCheckBranch =
+  | 'bothNormal'
+  | 'abnormal'
+  | 'ntStar'
+  | 'ntVariable'
+  | 'ntNotVariable'
+  | 'otherVariable';
+
+export type SensoryLevelCheckResult = CheckLevelResult & {
+  branch: SensoryLevelCheckBranch;
+};
+
+/* *************************************** */
+/*  checkSensoryLevel                      */
 /* *************************************** */
 
 export const checkSensoryLevel = (
@@ -33,7 +49,7 @@ export const checkSensoryLevel = (
   level: SensoryLevel,
   nextLevel: SensoryLevel,
   variable: boolean,
-): CheckLevelResult => {
+): SensoryLevelCheckResult => {
   if (nextLevel === 'C1') {
     throw new SensoryLevelError(
       'INVALID_NEXT_LEVEL',
@@ -45,16 +61,26 @@ export const checkSensoryLevel = (
   }
 
   if (side.lightTouch[nextLevel] === '2' && side.pinPrick[nextLevel] === '2') {
-    return { continue: true, variable };
+    return { continue: true, variable, branch: 'bothNormal' };
   } else if (
     isAbnormalSensory(side.lightTouch[nextLevel]) ||
     isAbnormalSensory(side.pinPrick[nextLevel])
   ) {
-    return { continue: false, level: level + (variable ? '*' : ''), variable };
+    return {
+      continue: false,
+      level: level + (variable ? '*' : ''),
+      variable,
+      branch: 'abnormal',
+    };
   } else if (
     [side.lightTouch[nextLevel], side.pinPrick[nextLevel]].includes('NT*')
   ) {
-    return { continue: false, level: level + '*', variable: true };
+    return {
+      continue: false,
+      level: level + '*',
+      variable: true,
+      branch: 'ntStar',
+    };
   } else if (
     side.lightTouch[nextLevel] === 'NT' ||
     side.pinPrick[nextLevel] === 'NT'
@@ -67,17 +93,23 @@ export const checkSensoryLevel = (
         continue: true,
         level: level + (variable ? '*' : ''),
         variable: true,
+        branch: 'ntVariable',
       };
     } else if (
       NTNotVariableSensory(side.lightTouch[nextLevel]) ||
       NTNotVariableSensory(side.pinPrick[nextLevel])
     ) {
-      return { continue: true, level: level + (variable ? '*' : ''), variable };
+      return {
+        continue: true,
+        level: level + (variable ? '*' : ''),
+        variable,
+        branch: 'ntNotVariable',
+      };
     } else {
       throw new SensoryLevelError('NT_BRANCH_UNMATCHED');
     }
   } else {
-    return { continue: true, variable: true };
+    return { continue: true, variable: true, branch: 'otherVariable' };
   }
 };
 
@@ -94,42 +126,6 @@ export type SensoryLevelState = {
 
 export type SensoryLevelStepHandler = StepHandler<SensoryLevelState>;
 export type SensoryLevelStep = Step<SensoryLevelState>;
-
-/* *************************************** */
-/*  Action branch detection                */
-/* *************************************** */
-
-type CheckLevelActionBranch =
-  | 'bothNormal'
-  | 'abnormal'
-  | 'ntStar'
-  | 'ntVariable'
-  | 'ntNotVariable'
-  | 'otherVariable';
-
-function getCheckLevelActionBranch(
-  lt: SensoryPointValue,
-  pp: SensoryPointValue,
-): CheckLevelActionBranch {
-  if (lt === '2' && pp === '2') {
-    return 'bothNormal';
-  }
-  if (isAbnormalSensory(lt) || isAbnormalSensory(pp)) {
-    return 'abnormal';
-  }
-  if ([lt, pp].includes('NT*')) {
-    return 'ntStar';
-  }
-  if (lt === 'NT' || pp === 'NT') {
-    if (NTVariableSensory(lt) || NTVariableSensory(pp)) {
-      return 'ntVariable';
-    }
-    if (NTNotVariableSensory(lt) || NTNotVariableSensory(pp)) {
-      return 'ntNotVariable';
-    }
-  }
-  return 'otherVariable';
-}
 
 /* *************************************** */
 /*  Step handlers                          */
@@ -183,7 +179,13 @@ function checkLevel(state: SensoryLevelState): SensoryLevelStep {
 
   const lt = state.side.lightTouch[nextLevel as Exclude<SensoryLevel, 'C1'>];
   const pp = state.side.pinPrick[nextLevel as Exclude<SensoryLevel, 'C1'>];
-  const branch = getCheckLevelActionBranch(lt, pp);
+
+  const result = checkSensoryLevel(
+    state.side,
+    level,
+    nextLevel,
+    state.variable,
+  );
 
   const description = {
     key: 'sensoryLevelCheckLevelDescription' as const,
@@ -193,18 +195,11 @@ function checkLevel(state: SensoryLevelState): SensoryLevelStep {
       pinPrick: pp,
     },
   };
-
-  const result = checkSensoryLevel(
-    state.side,
-    level,
-    nextLevel,
-    state.variable,
-  );
   const variable = state.variable || !!result.variable;
 
   const actionKeyMap: Record<
-  CheckLevelActionBranch,
-  { key: Translation; params?: { levelName?: string; variable?: string } }
+    SensoryLevelCheckBranch,
+    { key: Translation; params?: { levelName?: string; variable?: string } }
   > = {
     bothNormal: { key: 'sensoryLevelCheckLevelBothNormalAction' },
     abnormal: {
@@ -226,7 +221,7 @@ function checkLevel(state: SensoryLevelState): SensoryLevelStep {
     otherVariable: { key: 'sensoryLevelCheckLevelOtherVariableAction' },
   };
 
-  const action = actionKeyMap[branch];
+  const action = actionKeyMap[result.branch];
   const actions: { key: Translation; params?: { levelName?: string } }[] =
     action.params
       ? [{ key: action.key, params: action.params }]
