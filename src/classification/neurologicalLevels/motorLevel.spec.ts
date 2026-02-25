@@ -10,10 +10,14 @@ import {
   initializeMotorLevelIteration,
   checkLevel,
 } from './motorLevel';
-import { newEmptySide, newNormalSide, propagateSensoryValueFrom } from '../commonSpec';
+import {
+  newEmptySide,
+  newNormalSide,
+  propagateSensoryValueFrom,
+} from '../commonSpec';
 import { CheckLevelResult } from '../common';
 
-type TestCase = { currentLevel: MotorMuscleValue; nextLevel: MotorMuscleValue }
+type TestCase = { currentLevel: MotorMuscleValue; nextLevel: MotorMuscleValue };
 type Test = {
   cases: TestCase[];
   expected: CheckLevelResult | undefined;
@@ -24,7 +28,10 @@ type BeforeMotorTest = {
   expected: CheckLevelResult;
 };
 
-type AfterMotorTestCase = { values: MotorMuscleValue[]; sensoryCheckLevelResults?: CheckLevelResult[] }
+type AfterMotorTestCase = {
+  values: MotorMuscleValue[];
+  sensoryCheckLevelResults?: CheckLevelResult[];
+};
 type AfterMotorTest = {
   cases: AfterMotorTestCase[];
   expected: CheckLevelResult | undefined;
@@ -32,211 +39,297 @@ type AfterMotorTest = {
 
 const currentLevel = 'C5';
 
-const contains = (test: TestCase, type: 'currentLevel' | 'nextLevel', values: MotorMuscleValue[]): boolean => {
-  return values.some(value => test[type] === value);
-}
+const contains = (
+  test: TestCase,
+  type: 'currentLevel' | 'nextLevel',
+  values: MotorMuscleValue[],
+): boolean => {
+  return values.some((value) => test[type] === value);
+};
 
-const allTests: {currentLevel: MotorMuscleValue; nextLevel: MotorMuscleValue}[] = Array(19*19)
+const allTests: {
+  currentLevel: MotorMuscleValue;
+  nextLevel: MotorMuscleValue;
+}[] = Array(19 * 19)
   .fill(0)
   .map((v, i) => {
-    const s: MotorMuscleValue[] = ['0', '1', '2', '3', '4', '5', '0*', '1*', '2*', '3*', '4*', '0**', '1**', '2**', '3**', '4**', 'NT', 'NT*', 'NT**'];
-    const indexes = i.toString(19).padStart(2, '0').split('').map(v => parseInt(v, 19));
-    return {currentLevel: s[indexes[0]], nextLevel: s[indexes[1]]};
+    const s: MotorMuscleValue[] = [
+      '0',
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '0*',
+      '1*',
+      '2*',
+      '3*',
+      '4*',
+      '0**',
+      '1**',
+      '2**',
+      '3**',
+      '4**',
+      'NT',
+      'NT*',
+      'NT**',
+    ];
+    const indexes = i
+      .toString(19)
+      .padStart(2, '0')
+      .split('')
+      .map((v) => parseInt(v, 19));
+    return { currentLevel: s[indexes[0]], nextLevel: s[indexes[1]] };
   });
 
 const beforeKeyMusclesTests: BeforeMotorTest[] = [
   {
     // 3 tests
-    cases: ['0','1','2'],
-    expected: {continue: false, level: 'C4', variable: false},
-  }, {
+    cases: ['0', '1', '2'],
+    expected: { continue: false, level: 'C4', variable: false },
+  },
+  {
     // 5 test
-    cases: ['0*','1*','2*','NT','NT*'],
-    expected: {continue: true, level: 'C4', variable: false},
-  }, {
+    cases: ['0*', '1*', '2*', 'NT', 'NT*'],
+    expected: { continue: true, level: 'C4', variable: false },
+  },
+  {
     // 11 test??? TODO
-    cases: ['3','4','5','3*','4*','3**','4**','NT**'],
-    expected: {continue: true, variable: false},
-  }, {
+    cases: ['3', '4', '5', '3*', '4*', '3**', '4**', 'NT**'],
+    expected: { continue: true, variable: false },
+  },
+  {
     // 11 test??? TODO
-    cases: ['0**','1**','2**'],
-    expected: {continue: true, variable: true},
+    cases: ['0**', '1**', '2**'],
+    expected: { continue: true, variable: true },
   },
 ];
 
 const tests: Test[] = [
   {
     // 57 tests
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['0','1','2'])
-    )),
+    cases: allTests.filter((test) =>
+      contains(test, 'currentLevel', ['0', '1', '2']),
+    ),
     expected: undefined, // throw error
-  }, {
+  },
+  {
     // 100 tests
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['3','4','3*','4*']) ||
-      (
-        contains(test, 'currentLevel', ['5','0**','1**','2**','3**','4**','NT','NT**']) &&
-        contains(test, 'nextLevel', ['0','1','2'])
-      )
-    )),
-    expected: {continue: false, level: currentLevel, variable: false},
-  }, {
+    cases: allTests.filter(
+      (test) =>
+        contains(test, 'currentLevel', ['3', '4', '3*', '4*']) ||
+        (contains(test, 'currentLevel', [
+          '5',
+          '0**',
+          '1**',
+          '2**',
+          '3**',
+          '4**',
+          'NT',
+          'NT**',
+        ]) &&
+          contains(test, 'nextLevel', ['0', '1', '2'])),
+    ),
+    expected: { continue: false, level: currentLevel, variable: false },
+  },
+  {
     // 76 test
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['0*','1*','2*','NT*'])
-    )),
-    expected: {continue: false, level: currentLevel + '*', variable: true},
-  }, {
+    cases: allTests.filter((test) =>
+      contains(test, 'currentLevel', ['0*', '1*', '2*', 'NT*']),
+    ),
+    expected: { continue: false, level: currentLevel + '*', variable: true },
+  },
+  {
     // 11 test??? TODO
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['5']) &&
-      !contains(test, 'nextLevel', ['0','1','2','0*','1*','2*','0**','1**','2**','NT','NT*'])
-    )),
-    expected: {continue: true, variable: false},
-  }, {
-    // 66 test??? TODO
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['0**','1**','2**','3**','4**','NT**']) &&
-      !contains(test, 'nextLevel', ['0','1','2','0*','1*','2*','NT','NT*'])
-    ) || (
-      contains(test, 'currentLevel', ['5']) &&
-      contains(test, 'nextLevel', ['0**','1**','2**'])
-    )),
-    expected: {continue: true, variable: true},
-  }, {
-    // 21 test
-    cases: allTests.filter(test => (
-      (
+    cases: allTests.filter(
+      (test) =>
         contains(test, 'currentLevel', ['5']) &&
-        contains(test, 'nextLevel', ['0*','1*','2*','NT','NT*'])
-      ) || (
-        contains(test, 'currentLevel', ['NT']) &&
-        !contains(test, 'nextLevel', ['0','1','2'])
-      )
-    )),
-    expected: {continue: true, level: currentLevel, variable: false},
-  }, {
+        !contains(test, 'nextLevel', [
+          '0',
+          '1',
+          '2',
+          '0*',
+          '1*',
+          '2*',
+          '0**',
+          '1**',
+          '2**',
+          'NT',
+          'NT*',
+        ]),
+    ),
+    expected: { continue: true, variable: false },
+  },
+  {
+    // 66 test??? TODO
+    cases: allTests.filter(
+      (test) =>
+        (contains(test, 'currentLevel', [
+          '0**',
+          '1**',
+          '2**',
+          '3**',
+          '4**',
+          'NT**',
+        ]) &&
+          !contains(test, 'nextLevel', [
+            '0',
+            '1',
+            '2',
+            '0*',
+            '1*',
+            '2*',
+            'NT',
+            'NT*',
+          ])) ||
+        (contains(test, 'currentLevel', ['5']) &&
+          contains(test, 'nextLevel', ['0**', '1**', '2**'])),
+    ),
+    expected: { continue: true, variable: true },
+  },
+  {
+    // 21 test
+    cases: allTests.filter(
+      (test) =>
+        (contains(test, 'currentLevel', ['5']) &&
+          contains(test, 'nextLevel', ['0*', '1*', '2*', 'NT', 'NT*'])) ||
+        (contains(test, 'currentLevel', ['NT']) &&
+          !contains(test, 'nextLevel', ['0', '1', '2'])),
+    ),
+    expected: { continue: true, level: currentLevel, variable: false },
+  },
+  {
     // 15 test
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['3**','4**','NT**']) &&
-      contains(test, 'nextLevel', ['0*','1*','2*','NT','NT*'])
-    )),
-    expected: {continue: true, level: currentLevel, variable: true},
-  }, {
+    cases: allTests.filter(
+      (test) =>
+        contains(test, 'currentLevel', ['3**', '4**', 'NT**']) &&
+        contains(test, 'nextLevel', ['0*', '1*', '2*', 'NT', 'NT*']),
+    ),
+    expected: { continue: true, level: currentLevel, variable: true },
+  },
+  {
     // 15 test
-    cases: allTests.filter(test => (
-      contains(test, 'currentLevel', ['0**','1**','2**']) &&
-      contains(test, 'nextLevel', ['0*','1*','2*','NT','NT*'])
-    )),
-    expected: {continue: true, level: currentLevel + '*', variable: true},
+    cases: allTests.filter(
+      (test) =>
+        contains(test, 'currentLevel', ['0**', '1**', '2**']) &&
+        contains(test, 'nextLevel', ['0*', '1*', '2*', 'NT', 'NT*']),
+    ),
+    expected: { continue: true, level: currentLevel + '*', variable: true },
   },
 ];
 
 const afterMotorTests: AfterMotorTest[] = [
   {
     // 24 tests
-    cases: [{ values: ['0','1','2'] }],
+    cases: [{ values: ['0', '1', '2'] }],
     expected: undefined,
-  }, {
+  },
+  {
     cases: [
       {
-        values: ['3','4','3*','4*']
-      }, {
-        values: ['5','3**','4**','NT**','NT'],
+        values: ['3', '4', '3*', '4*'],
+      },
+      {
+        values: ['5', '3**', '4**', 'NT**', 'NT'],
         sensoryCheckLevelResults: [
-          {continue: false, variable: false},
-          {continue: false, variable: true},
-          {continue: false, level: 'foo', variable: false},
-          {continue: false, level: 'foo', variable: true},
+          { continue: false, variable: false },
+          { continue: false, variable: true },
+          { continue: false, level: 'foo', variable: false },
+          { continue: false, level: 'foo', variable: true },
         ],
-      }
+      },
     ],
-    expected: {continue: false, level: 'T1', variable: false},
-  }, {
+    expected: { continue: false, level: 'T1', variable: false },
+  },
+  {
     // 32 tests
     cases: [
       {
-        values: ['0*','1*','2*','NT*']
-      }, {
-        values: ['0**','1**','2**'],
+        values: ['0*', '1*', '2*', 'NT*'],
+      },
+      {
+        values: ['0**', '1**', '2**'],
         sensoryCheckLevelResults: [
-          {continue: false, variable: false},
-          {continue: false, variable: true},
-          {continue: false, level: 'foo', variable: false},
-          {continue: false, level: 'foo', variable: true},
-        ]
-      }
+          { continue: false, variable: false },
+          { continue: false, variable: true },
+          { continue: false, level: 'foo', variable: false },
+          { continue: false, level: 'foo', variable: true },
+        ],
+      },
     ],
-    expected: {continue: false, level: 'T1*', variable: true},
-  }, {
+    expected: { continue: false, level: 'T1*', variable: true },
+  },
+  {
     // 16 tests
     cases: [
       {
         values: ['NT'],
+        sensoryCheckLevelResults: [{ continue: true, variable: false }],
+      },
+      {
+        values: ['5', 'NT'],
         sensoryCheckLevelResults: [
-          {continue: true, variable: false},
+          { continue: true, level: 'foo', variable: false },
+          { continue: true, level: 'foo', variable: true },
         ],
-      }, {
-        values: ['5','NT'],
-        sensoryCheckLevelResults: [
-          {continue: true, level: 'foo', variable: false},
-          {continue: true, level: 'foo', variable: true},
-        ],
-      }
+      },
     ],
-    expected: {continue: true, level: 'T1', variable: false},
-  }, {
+    expected: { continue: true, level: 'T1', variable: false },
+  },
+  {
     cases: [
       {
         values: ['NT'],
+        sensoryCheckLevelResults: [{ continue: true, variable: true }],
+      },
+      {
+        values: ['3**', '4**', 'NT**'],
         sensoryCheckLevelResults: [
-          {continue: true, variable: true},
+          { continue: true, level: 'foo', variable: true },
+          { continue: true, level: 'foo', variable: false },
         ],
-      }, {
-        values: ['3**','4**','NT**'],
-        sensoryCheckLevelResults: [
-          {continue: true, level: 'foo', variable: true},
-          {continue: true, level: 'foo', variable: false},
-        ],
-      }
+      },
     ],
-    expected: {continue: true, level: 'T1', variable: true},
-  }, {
-    cases: [{
-      values: ['0**','1**','2**'],
-      sensoryCheckLevelResults: [
-        {continue: true, level: 'foo', variable: true},
-        {continue: true, level: 'foo', variable: false},
-      ],
-    }],
-    expected: {continue: true, level: 'T1*', variable: true},
-  }, {
-    cases: [{
-      values: ['5'],
-      sensoryCheckLevelResults: [
-        {continue: true, variable: false},
-      ],
-    }],
-    expected: {continue: true, variable: false},
-  }, {
+    expected: { continue: true, level: 'T1', variable: true },
+  },
+  {
+    cases: [
+      {
+        values: ['0**', '1**', '2**'],
+        sensoryCheckLevelResults: [
+          { continue: true, level: 'foo', variable: true },
+          { continue: true, level: 'foo', variable: false },
+        ],
+      },
+    ],
+    expected: { continue: true, level: 'T1*', variable: true },
+  },
+  {
     cases: [
       {
         values: ['5'],
-        sensoryCheckLevelResults: [
-          {continue: true, variable: true},
-        ],
-      }, {
-        values: ['0**','1**','2**','3**','4**','NT**'],
-        sensoryCheckLevelResults: [
-          {continue: true, variable: false},
-          {continue: true, variable: true},
-        ],
-      }
+        sensoryCheckLevelResults: [{ continue: true, variable: false }],
+      },
     ],
-    expected: {continue: true, variable: true},
+    expected: { continue: true, variable: false },
   },
-]
+  {
+    cases: [
+      {
+        values: ['5'],
+        sensoryCheckLevelResults: [{ continue: true, variable: true }],
+      },
+      {
+        values: ['0**', '1**', '2**', '3**', '4**', 'NT**'],
+        sensoryCheckLevelResults: [
+          { continue: true, variable: false },
+          { continue: true, variable: true },
+        ],
+      },
+    ],
+    expected: { continue: true, variable: true },
+  },
+];
 
 // 1064 tests + 3 verification test
 describe('determineMotorLevel', () => {
@@ -245,27 +338,40 @@ describe('determineMotorLevel', () => {
     const currentLevel = 'C4';
     const nextLevel = 'C5';
     const allValues: string[] = [];
-    const checkMotorLevelBeforeStartOfKeyMusclesTest = (variable: boolean, testCase: MotorMuscleValue, expected: CheckLevelResult): void => {
+    const checkMotorLevelBeforeStartOfKeyMusclesTest = (
+      variable: boolean,
+      testCase: MotorMuscleValue,
+      expected: CheckLevelResult,
+    ): void => {
       const side: ExamSide = newEmptySide();
       side.motor[nextLevel] = testCase;
       it(`${testCase}`, () => {
-        const result = checkMotorLevelBeforeStartOfKeyMuscles(side, currentLevel, nextLevel, variable);
+        const result = checkMotorLevelBeforeStartOfKeyMuscles(
+          side,
+          currentLevel,
+          nextLevel,
+          variable,
+        );
         expect(result.level).toBe(expected.level);
         expect(result.continue).toBe(expected.continue);
         expect(result.variable).toBe(expected.variable);
-      })
-      allValues.push(side.motor[nextLevel]+variable);
-    }
+      });
+      allValues.push(side.motor[nextLevel] + variable);
+    };
 
     describe('variable = false', () => {
       for (const test of beforeKeyMusclesTests) {
         describe(`expected: ${JSON.stringify(test.expected)}`, () => {
           for (const testCase of test.cases) {
-            checkMotorLevelBeforeStartOfKeyMusclesTest(false, testCase, test.expected);
+            checkMotorLevelBeforeStartOfKeyMusclesTest(
+              false,
+              testCase,
+              test.expected,
+            );
           }
-        })
+        });
       }
-    })
+    });
 
     describe('variable = true', () => {
       for (const test of beforeKeyMusclesTests) {
@@ -276,24 +382,32 @@ describe('determineMotorLevel', () => {
         };
         describe(`expected: ${JSON.stringify(expected)}`, () => {
           for (const testCase of test.cases) {
-            checkMotorLevelBeforeStartOfKeyMusclesTest(true, testCase, expected);
+            checkMotorLevelBeforeStartOfKeyMusclesTest(
+              true,
+              testCase,
+              expected,
+            );
           }
-        })
+        });
       }
-    })
+    });
 
     it('check all tests are unique', () => {
       const hashSet = new Set(allValues);
       expect(allValues.length).toBe(19 * 2);
       expect(hashSet.size).toBe(19 * 2);
-    })
-  })
+    });
+  });
 
   // 722 tests (19 * 19 * 2) + 1 verification test
   describe(`checkMotorLevel`, () => {
     const allValues: string[] = [];
 
-    const checkMotorLevelTest = (variable: boolean, testCase: TestCase, expected?: CheckLevelResult): string => {
+    const checkMotorLevelTest = (
+      variable: boolean,
+      testCase: TestCase,
+      expected?: CheckLevelResult,
+    ): string => {
       const currentLevel = 'C5';
       const nextLevel = 'C6';
       const side = newEmptySide();
@@ -304,10 +418,15 @@ describe('determineMotorLevel', () => {
         if (expected === undefined) {
           const currentLevelMotorIsImpairedTest = (): void => {
             checkMotorLevel(side, currentLevel, nextLevel, variable);
-          }
+          };
           expect(currentLevelMotorIsImpairedTest).toThrowError();
         } else {
-          const result = checkMotorLevel(side, currentLevel, nextLevel, variable);
+          const result = checkMotorLevel(
+            side,
+            currentLevel,
+            nextLevel,
+            variable,
+          );
           if (expected.level) {
             expect(result.level).toBe(expected.level);
           } else {
@@ -316,9 +435,9 @@ describe('determineMotorLevel', () => {
           expect(result.continue).toBe(expected.continue);
           expect(result.variable).toBe(expected.variable);
         }
-      })
-      return variable+side.motor[currentLevel]+side.motor[nextLevel];
-    }
+      });
+      return variable + side.motor[currentLevel] + side.motor[nextLevel];
+    };
 
     describe('variable = false', () => {
       for (const test of tests) {
@@ -326,66 +445,80 @@ describe('determineMotorLevel', () => {
           for (const testCase of test.cases) {
             allValues.push(checkMotorLevelTest(false, testCase, test.expected));
           }
-        })
+        });
       }
-    })
+    });
 
     describe('variable = true', () => {
       for (const test of tests) {
-        const expected = test.expected ? {
-          continue: test.expected.continue,
-          level: !test.expected.level ? undefined
-            : test.expected.level.includes('*') ? test.expected.level
-              : test.expected.level + '*',
-          variable: true,
-        } : undefined;
+        const expected = test.expected
+          ? {
+              continue: test.expected.continue,
+              level: !test.expected.level
+                ? undefined
+                : test.expected.level.includes('*')
+                  ? test.expected.level
+                  : test.expected.level + '*',
+              variable: true,
+            }
+          : undefined;
 
         describe(`expected: ${JSON.stringify(expected)}`, () => {
           for (const testCase of test.cases) {
             allValues.push(checkMotorLevelTest(true, testCase, expected));
           }
-        })
+        });
       }
-    })
+    });
 
     it('check all tests are unique', () => {
       const hashSet = new Set(allValues);
       expect(allValues.length).toBe(361 * 2);
       expect(hashSet.size).toBe(361 * 2);
-    })
-  })
+    });
+  });
 
   // 304 tests (19 * 8 * 2) + 1 verification test
   describe(`checkMotorLevelAtEndOfKeyMuscles: checkWithSensoryCheckLevelResult`, () => {
     const allValues: string[] = [];
 
-    const checkWithSensoryCheckLevelResultTest = (variable: boolean, testCase: AfterMotorTestCase, expected?: CheckLevelResult): void => {
+    const checkWithSensoryCheckLevelResultTest = (
+      variable: boolean,
+      testCase: AfterMotorTestCase,
+      expected?: CheckLevelResult,
+    ): void => {
       const currentLevel = 'T1';
       const side = newEmptySide();
 
       for (const value of testCase.values) {
         side.motor[currentLevel] = value;
-        const sensoryCheckLevelResults = testCase.sensoryCheckLevelResults ?
-          testCase.sensoryCheckLevelResults : [
-            {continue: false, variable: false},
-            {continue: false, variable: true},
-            {continue: false, level: 'foo', variable: false},
-            {continue: false, level: 'foo', variable: true},
-            {continue: true, variable: false},
-            {continue: true, variable: true},
-            {continue: true, level: 'foo', variable: false},
-            {continue: true, level: 'foo', variable: true},
-          ];
+        const sensoryCheckLevelResults = testCase.sensoryCheckLevelResults
+          ? testCase.sensoryCheckLevelResults
+          : [
+              { continue: false, variable: false },
+              { continue: false, variable: true },
+              { continue: false, level: 'foo', variable: false },
+              { continue: false, level: 'foo', variable: true },
+              { continue: true, variable: false },
+              { continue: true, variable: true },
+              { continue: true, level: 'foo', variable: false },
+              { continue: true, level: 'foo', variable: true },
+            ];
 
         for (const sensoryCheckLevelResult of sensoryCheckLevelResults) {
           it(`${value} ${JSON.stringify(sensoryCheckLevelResult)}`, () => {
             if (expected === undefined) {
               const errorCheckMotorLevelAtEndOfKeyMusclesTest = (): void => {
                 checkMotorLevelAtEndOfKeyMuscles(side, currentLevel, variable);
-              }
+              };
               expect(errorCheckMotorLevelAtEndOfKeyMusclesTest).toThrowError();
             } else {
-              const result = checkWithSensoryCheckLevelResult(side, currentLevel, variable, sensoryCheckLevelResult);
+              const result = checkWithSensoryCheckLevelResult(
+                side,
+                currentLevel,
+                variable,
+                sensoryCheckLevelResult,
+              );
               if (expected.level) {
                 expect(result.level).toBe(expected.level);
               } else {
@@ -394,45 +527,59 @@ describe('determineMotorLevel', () => {
               expect(result.continue).toBe(expected.continue);
               expect(result.variable).toBe(expected.variable);
             }
-          })
-          allValues.push(variable+side.motor[currentLevel]+sensoryCheckLevelResult.continue+sensoryCheckLevelResult.level+sensoryCheckLevelResult.variable);
+          });
+          allValues.push(
+            variable +
+              side.motor[currentLevel] +
+              sensoryCheckLevelResult.continue +
+              sensoryCheckLevelResult.level +
+              sensoryCheckLevelResult.variable,
+          );
         }
       }
-    }
+    };
 
     describe('variable = false', () => {
       for (const test of afterMotorTests) {
         describe(`expected: ${JSON.stringify(test.expected)}`, () => {
           for (const testCase of test.cases) {
-            checkWithSensoryCheckLevelResultTest(false, testCase, test.expected);
+            checkWithSensoryCheckLevelResultTest(
+              false,
+              testCase,
+              test.expected,
+            );
           }
-        })
+        });
       }
-    })
+    });
 
     describe('variable = true', () => {
       for (const test of afterMotorTests) {
-        const expected = test.expected ? {
-          continue: test.expected.continue,
-          level: !test.expected.level ? undefined
-            : test.expected.level.includes('*') ? test.expected.level
-              : test.expected.level + '*',
-          variable: true,
-        } : undefined;
+        const expected = test.expected
+          ? {
+              continue: test.expected.continue,
+              level: !test.expected.level
+                ? undefined
+                : test.expected.level.includes('*')
+                  ? test.expected.level
+                  : test.expected.level + '*',
+              variable: true,
+            }
+          : undefined;
         describe(`expected: ${JSON.stringify(expected)}`, () => {
           for (const testCase of test.cases) {
             checkWithSensoryCheckLevelResultTest(true, testCase, expected);
           }
-        })
+        });
       }
-    })
+    });
 
     it('check all tests are unique', () => {
       const hashSet = new Set(allValues);
       expect(allValues.length).toBe(152 * 2);
       expect(hashSet.size).toBe(152 * 2);
-    })
-  })
+    });
+  });
 
   /* *************************************** */
   /*  Step-Based Structure Tests            */
@@ -462,9 +609,13 @@ describe('determineMotorLevel', () => {
       expect(step.state.variable).toBe(false);
       expect(step.state.currentIndex).toBe(0);
       expect(step.next).toBe(checkLevel);
-      expect(step.description.key).toBe('motorLevelInitializeMotorLevelIterationDescription');
+      expect(step.description.key).toBe(
+        'motorLevelInitializeMotorLevelIterationDescription',
+      );
       expect(step.actions.length).toBe(1);
-      expect(step.actions[0].key).toBe('motorLevelInitializeMotorLevelIterationAction');
+      expect(step.actions[0].key).toBe(
+        'motorLevelInitializeMotorLevelIterationAction',
+      );
     });
   });
 
@@ -479,7 +630,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('C2');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelSensoryRegionAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelSensoryRegionAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBe(checkLevel);
         expect(step.state.currentIndex).toBe(2);
       });
@@ -495,7 +650,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('C2');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelSensoryRegionAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelSensoryRegionAction',
+          ),
+        ).toBe(true);
         // Verify step executes correctly; actual stop behavior depends on checkSensoryLevel logic
       });
     });
@@ -510,8 +669,14 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('C4');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction')).toBe(true);
-        expect(step.actions.some(a => a.params?.nextLevel === 'C5')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction',
+          ),
+        ).toBe(true);
+        expect(step.actions.some((a) => a.params?.nextLevel === 'C5')).toBe(
+          true,
+        );
         expect(step.next).toBe(checkLevel);
       });
 
@@ -538,8 +703,14 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('L1');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction')).toBe(true);
-        expect(step.actions.some(a => a.params?.nextLevel === 'L2')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction',
+          ),
+        ).toBe(true);
+        expect(step.actions.some((a) => a.params?.nextLevel === 'L2')).toBe(
+          true,
+        );
         expect(step.next).toBe(checkLevel);
       });
     });
@@ -554,7 +725,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('C5');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelKeyMotorAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelKeyMotorAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBe(checkLevel);
       });
 
@@ -596,7 +771,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('L2');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelKeyMotorAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelKeyMotorAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBe(checkLevel);
       });
 
@@ -623,7 +802,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('T1');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBe(checkLevel);
       });
 
@@ -650,7 +833,11 @@ describe('determineMotorLevel', () => {
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
         expect(step.description.params?.levelName).toBe('S1');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBe(checkLevel);
       });
 
@@ -679,7 +866,9 @@ describe('determineMotorLevel', () => {
         const step = checkLevel(state);
 
         expect(step.description.key).toBe('motorLevelCheckLevelDescription');
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACNoAction')).toBe(true);
+        expect(
+          step.actions.some((a) => a.key === 'motorLevelCheckLevelVACNoAction'),
+        ).toBe(true);
         expect(step.next).toBeNull();
         expect(step.state.levels).toContain('S3');
       });
@@ -692,6 +881,10 @@ describe('determineMotorLevel', () => {
 
         const step = checkLevel(state);
 
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(
+          step.actions.some((a) => a.key === 'motorLevelCheckLevelVACNoAction'),
+        ).toBe(true);
         expect(step.next).toBeNull();
         expect(step.state.levels).toEqual(['S3']);
       });
@@ -703,7 +896,9 @@ describe('determineMotorLevel', () => {
 
         const step = checkLevel(state);
 
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACNTAction')).toBe(true);
+        expect(
+          step.actions.some((a) => a.key === 'motorLevelCheckLevelVACNTAction'),
+        ).toBe(true);
         expect(step.next).toBeNull();
         expect(step.state.levels).toContain('S3');
         expect(step.state.levels).toContain('INT');
@@ -730,7 +925,11 @@ describe('determineMotorLevel', () => {
 
         const step = checkLevel(state);
 
-        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACYesAction')).toBe(true);
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelVACYesAction',
+          ),
+        ).toBe(true);
         expect(step.next).toBeNull();
         expect(step.state.levels).toContain('INT');
         expect(step.state.levels).not.toContain('S3');
@@ -879,7 +1078,7 @@ describe('determineMotorLevel', () => {
       const steps = Array.from(motorLevelSteps(side, 'No'));
 
       // Find step where variable becomes true
-      const variableSteps = steps.filter(s => s.state.variable === true);
+      const variableSteps = steps.filter((s) => s.state.variable === true);
       expect(variableSteps.length).toBeGreaterThan(0);
     });
 
@@ -894,7 +1093,9 @@ describe('determineMotorLevel', () => {
 
       for (let i = 1; i < steps.length - 1; i++) {
         if (steps[i].next !== null) {
-          expect(steps[i].state.currentIndex).toBeGreaterThan(steps[i - 1].state.currentIndex);
+          expect(steps[i].state.currentIndex).toBeGreaterThan(
+            steps[i - 1].state.currentIndex,
+          );
         }
       }
     });
@@ -970,4 +1171,4 @@ describe('determineMotorLevel', () => {
       expect(result).toBe('L3');
     });
   });
-})
+});
