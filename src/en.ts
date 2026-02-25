@@ -135,4 +135,23 @@ export default {
     'Continue to next level.',
   motorLevelCheckLevelStopAction:
     'Add {{levelName}} and stop.',
+  // Neurological Level of Injury
+  neurologicalLevelOfInjuryInitializeNLIIterationDescription:
+    'Initialize Neurological Level of Injury calculation. Iterate from C1 toward S4_5.',
+  neurologicalLevelOfInjuryInitializeNLIIterationAction:
+    'Set levels list to empty, variable to false.',
+  neurologicalLevelOfInjuryCheckLevelDescription:
+    'Check neurological level at {{levelName}}.',
+  neurologicalLevelOfInjuryCheckLevelSensoryOnlyAction:
+    'Sensory-only region. Evaluate bilateral sensory function (LT and PP on both sides).',
+  neurologicalLevelOfInjuryCheckLevelMotorRegionAction:
+    'Motor region. Evaluate bilateral sensory and motor function.',
+  neurologicalLevelOfInjuryCheckLevelAddLevelAction:
+    'Add {{levelName}} to NLI.',
+  neurologicalLevelOfInjuryCheckLevelContinueAction:
+    'Bilateral function intact. Continue to next level.',
+  neurologicalLevelOfInjuryCheckLevelStopAction:
+    'Bilateral function not intact. Stop iteration.',
+  neurologicalLevelOfInjuryCheckLevelReachedS4_5Action:
+    'Reached S4_5. All levels have intact bilateral function. Add INT.',
 };
