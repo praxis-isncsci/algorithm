@@ -110,4 +110,29 @@ export default {
   sensoryLevelCheckLevelOtherVariableAction:
     'Variable sensory at next level. Continue.',
   sensoryLevelCheckLevelReachedEndAction: 'Reached S4_5. Add {{intLevel}}.',
+  // Motor Level
+  motorLevelInitializeMotorLevelIterationDescription:
+    'Initialize motor level calculation. Iterate from C1 toward S4_5.',
+  motorLevelInitializeMotorLevelIterationAction:
+    'Set levels to empty, variable to false, and currentIndex to 0.',
+  motorLevelCheckLevelDescription:
+    'Check motor/sensory function at {{levelName}}.',
+  motorLevelCheckLevelSensoryRegionAction:
+    'Sensory region. Evaluate using light touch and pin prick.',
+  motorLevelCheckLevelBeforeKeyMusclesAction:
+    'Before key muscles. Evaluate using next key muscle ({{nextLevel}}).',
+  motorLevelCheckLevelKeyMotorAction:
+    'Key motor region. Evaluate using motor grade at {{levelName}} and {{nextLevel}}.',
+  motorLevelCheckLevelEndOfKeyMusclesAction:
+    'End of key muscles. Evaluate using motor at {{levelName}} and sensory below.',
+  motorLevelCheckLevelVACNoAction:
+    'VAC is No. Add S3 if not present and stop.',
+  motorLevelCheckLevelVACNTAction:
+    'VAC is NT. Add S3 and INT as needed.',
+  motorLevelCheckLevelVACYesAction:
+    'VAC is Yes. Add INT and stop.',
+  motorLevelCheckLevelContinueAction:
+    'Continue to next level.',
+  motorLevelCheckLevelStopAction:
+    'Add {{levelName}} and stop.',
 };

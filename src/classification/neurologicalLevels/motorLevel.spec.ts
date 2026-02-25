@@ -1,6 +1,16 @@
 import { ExamSide, MotorMuscleValue } from '../../interfaces';
-import { checkMotorLevel, checkMotorLevelBeforeStartOfKeyMuscles, checkMotorLevelAtEndOfKeyMuscles, checkWithSensoryCheckLevelResult } from './motorLevel';
-import { newEmptySide } from '../commonSpec';
+import {
+  checkMotorLevel,
+  checkMotorLevelBeforeStartOfKeyMuscles,
+  checkMotorLevelAtEndOfKeyMuscles,
+  checkWithSensoryCheckLevelResult,
+  determineMotorLevel,
+  motorLevelSteps,
+  getInitialState,
+  initializeMotorLevelIteration,
+  checkLevel,
+} from './motorLevel';
+import { newEmptySide, newNormalSide, propagateSensoryValueFrom } from '../commonSpec';
 import { CheckLevelResult } from '../common';
 
 type TestCase = { currentLevel: MotorMuscleValue; nextLevel: MotorMuscleValue }
@@ -423,4 +433,541 @@ describe('determineMotorLevel', () => {
       expect(hashSet.size).toBe(152 * 2);
     })
   })
+
+  /* *************************************** */
+  /*  Step-Based Structure Tests            */
+  /* *************************************** */
+
+  describe('getInitialState', () => {
+    it('creates initial state with correct properties', () => {
+      const side = newNormalSide();
+      const vac = 'No';
+      const state = getInitialState(side, vac);
+
+      expect(state.side).toBe(side);
+      expect(state.vac).toBe(vac);
+      expect(state.levels).toEqual([]);
+      expect(state.variable).toBe(false);
+      expect(state.currentIndex).toBe(0);
+    });
+  });
+
+  describe('initializeMotorLevelIteration', () => {
+    it('initializes state correctly and chains to checkLevel', () => {
+      const side = newNormalSide();
+      const state = getInitialState(side, 'No');
+      const step = initializeMotorLevelIteration(state);
+
+      expect(step.state.levels).toEqual([]);
+      expect(step.state.variable).toBe(false);
+      expect(step.state.currentIndex).toBe(0);
+      expect(step.next).toBe(checkLevel);
+      expect(step.description.key).toBe('motorLevelInitializeMotorLevelIterationDescription');
+      expect(step.actions.length).toBe(1);
+      expect(step.actions[0].key).toBe('motorLevelInitializeMotorLevelIterationAction');
+    });
+  });
+
+  describe('checkLevel step handler', () => {
+    describe('sensory regions (C1-C3)', () => {
+      it('checks sensory at C2 when all values are normal', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 1; // C2
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('C2');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelSensoryRegionAction')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+        expect(step.state.currentIndex).toBe(2);
+      });
+
+      it('evaluates C2 when sensory values are impaired', () => {
+        const side = newNormalSide();
+        side.lightTouch.C2 = '0';
+        side.pinPrick.C2 = '0';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 1; // C2
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('C2');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelSensoryRegionAction')).toBe(true);
+        // Verify step executes correctly; actual stop behavior depends on checkSensoryLevel logic
+      });
+    });
+
+    describe('before key muscles (C4)', () => {
+      it('checks C4 before cervical key muscles with normal C5', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 3; // C4
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('C4');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction')).toBe(true);
+        expect(step.actions.some(a => a.params?.nextLevel === 'C5')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+
+      it('stops at C4 when C5 motor is impaired', () => {
+        const side = newNormalSide();
+        side.motor.C5 = '0';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 3; // C4
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('C4');
+      });
+    });
+
+    describe('before key muscles (L1)', () => {
+      it('checks L1 before lumbar key muscles with normal L2', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 20; // L1
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('L1');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelBeforeKeyMusclesAction')).toBe(true);
+        expect(step.actions.some(a => a.params?.nextLevel === 'L2')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+    });
+
+    describe('key motor regions (C5-C8)', () => {
+      it('checks C5 motor level with normal values', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 4; // C5
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('C5');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelKeyMotorAction')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+
+      it('stops at C6 when motor grade is 3', () => {
+        const side = newNormalSide();
+        side.motor.C6 = '3';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 5; // C6
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('C6');
+        expect(step.state.variable).toBe(false);
+      });
+
+      it('stops at C7 with variable false when motor is 3*', () => {
+        const side = newNormalSide();
+        side.motor.C7 = '3*';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 6; // C7
+
+        const step = checkLevel(state);
+
+        // Based on checkMotorLevel logic, '3*' in currentLevel returns {continue: false, level: currentLevel, variable: false}
+        expect(step.state.variable).toBe(false);
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('C7');
+      });
+    });
+
+    describe('key motor regions (L2-L5)', () => {
+      it('checks L2 motor level with normal values', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 21; // L2
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('L2');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelKeyMotorAction')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+
+      it('stops at L3 when motor grade is 4', () => {
+        const side = newNormalSide();
+        side.motor.L3 = '4';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 22; // L3
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('L3');
+      });
+    });
+
+    describe('end of key muscles (T1)', () => {
+      it('checks T1 at end of cervical key muscles', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 8; // T1
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('T1');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+
+      it('stops at T1 when motor grade is 3', () => {
+        const side = newNormalSide();
+        side.motor.T1 = '3';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 8; // T1
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('T1');
+      });
+    });
+
+    describe('end of key muscles (S1)', () => {
+      it('checks S1 at end of lumbar key muscles', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 25; // S1
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.description.params?.levelName).toBe('S1');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelEndOfKeyMusclesAction')).toBe(true);
+        expect(step.next).toBe(checkLevel);
+      });
+
+      it('stops at S1 when motor grade is 4*', () => {
+        const side = newNormalSide();
+        side.motor.S1 = '4*';
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 25; // S1
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('S1');
+        // Based on checkMotorLevelAtEndOfKeyMuscles -> checkWithSensoryCheckLevelResult logic
+        // '4*' returns level without variable flag set
+        expect(step.state.variable).toBe(false);
+      });
+    });
+
+    describe('VAC handling at S4_5', () => {
+      it('VAC=No with S3 not in levels adds S3 and stops', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.description.key).toBe('motorLevelCheckLevelDescription');
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACNoAction')).toBe(true);
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('S3');
+      });
+
+      it('VAC=No with S3 already in levels stops without adding', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.levels = ['S3'];
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toEqual(['S3']);
+      });
+
+      it('VAC=NT with S3 not in levels adds S3 and INT', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'NT');
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACNTAction')).toBe(true);
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('S3');
+        expect(step.state.levels).toContain('INT');
+      });
+
+      it('VAC=NT with S3 already in levels adds INT only', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'NT');
+        state.levels = ['S3'];
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('S3');
+        expect(step.state.levels).toContain('INT');
+        expect(step.state.levels.length).toBe(2);
+      });
+
+      it('VAC=Yes adds INT and stops', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'Yes');
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.actions.some(a => a.key === 'motorLevelCheckLevelVACYesAction')).toBe(true);
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('INT');
+        expect(step.state.levels).not.toContain('S3');
+      });
+
+      it('VAC=No with variable flag adds S3* and stops', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'No');
+        state.variable = true;
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('S3*');
+      });
+
+      it('VAC=Yes with variable flag adds INT* and stops', () => {
+        const side = newNormalSide();
+        const state = getInitialState(side, 'Yes');
+        state.variable = true;
+        state.currentIndex = 28; // S4_5
+
+        const step = checkLevel(state);
+
+        expect(step.next).toBeNull();
+        expect(step.state.levels).toContain('INT*');
+      });
+    });
+  });
+
+  describe('motorLevelSteps generator', () => {
+    it('yields at least one step', () => {
+      const side = newNormalSide();
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      expect(steps.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('final step result matches determineMotorLevel for same inputs', () => {
+      const side = newNormalSide();
+      side.motor.C6 = '3';
+
+      const expected = determineMotorLevel(side, 'No');
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const lastStep = steps[steps.length - 1];
+      const actual = lastStep.state.levels.join(',');
+
+      expect(actual).toBe(expected);
+    });
+
+    it('each step has description, actions, state, and next', () => {
+      const side = newNormalSide();
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+
+      for (const step of steps) {
+        expect(step).toHaveProperty('description');
+        expect(step).toHaveProperty('actions');
+        expect(step).toHaveProperty('state');
+        expect(step).toHaveProperty('next');
+        expect(step.description).toHaveProperty('key');
+        expect(Array.isArray(step.actions)).toBe(true);
+        expect(step.state).toHaveProperty('levels');
+      }
+    });
+
+    it('stops when motor level is found at C6', () => {
+      const side = newNormalSide();
+      side.motor.C6 = '3';
+
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const lastStep = steps[steps.length - 1];
+
+      expect(lastStep.next).toBeNull();
+      expect(lastStep.state.levels).toContain('C6');
+    });
+
+    it('yields multiple steps for full traversal to S4_5', () => {
+      const side = newNormalSide();
+
+      const steps = Array.from(motorLevelSteps(side, 'Yes'));
+
+      expect(steps.length).toBeGreaterThan(1);
+      expect(steps[steps.length - 1].next).toBeNull();
+      expect(steps[steps.length - 1].state.levels).toContain('INT');
+    });
+
+    it('handles VAC=NT correctly in generator', () => {
+      const side = newNormalSide();
+
+      const steps = Array.from(motorLevelSteps(side, 'NT'));
+      const lastStep = steps[steps.length - 1];
+
+      expect(lastStep.state.levels).toContain('S3');
+      expect(lastStep.state.levels).toContain('INT');
+    });
+
+    it('matches original determineMotorLevel for normal side with VAC=No', () => {
+      const side = newNormalSide();
+      const expected = determineMotorLevel(side, 'No');
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const actual = steps[steps.length - 1].state.levels.join(',');
+
+      expect(actual).toBe(expected);
+    });
+
+    it('matches original determineMotorLevel for impaired motor at T1', () => {
+      const side = newNormalSide();
+      side.motor.T1 = '3*';
+
+      const expected = determineMotorLevel(side, 'No');
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const actual = steps[steps.length - 1].state.levels.join(',');
+
+      expect(actual).toBe(expected);
+      expect(actual).toBe('T1');
+    });
+
+    it('matches original determineMotorLevel for complex case with sensory regions', () => {
+      const side = newNormalSide();
+      propagateSensoryValueFrom(side, 'T5', '0');
+
+      const expected = determineMotorLevel(side, 'No');
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const actual = steps[steps.length - 1].state.levels.join(',');
+
+      expect(actual).toBe(expected);
+    });
+
+    it('matches original determineMotorLevel for lumbar impairment', () => {
+      const side = newNormalSide();
+      side.motor.L3 = '4*';
+
+      const expected = determineMotorLevel(side, 'No');
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+      const actual = steps[steps.length - 1].state.levels.join(',');
+
+      expect(actual).toBe(expected);
+      expect(actual).toBe('L3');
+    });
+
+    it('variable flag accumulates across multiple levels', () => {
+      const side = newNormalSide();
+      side.motor.C5 = '5';
+      side.motor.C6 = '0**'; // This should set variable
+
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+
+      // Find step where variable becomes true
+      const variableSteps = steps.filter(s => s.state.variable === true);
+      expect(variableSteps.length).toBeGreaterThan(0);
+    });
+
+    it('currentIndex increments correctly through iteration', () => {
+      const side = newNormalSide();
+      side.motor.C7 = '3';
+
+      const steps = Array.from(motorLevelSteps(side, 'No'));
+
+      // Check that currentIndex starts at 0 and increments
+      expect(steps[0].state.currentIndex).toBe(0);
+
+      for (let i = 1; i < steps.length - 1; i++) {
+        if (steps[i].next !== null) {
+          expect(steps[i].state.currentIndex).toBeGreaterThan(steps[i - 1].state.currentIndex);
+        }
+      }
+    });
+  });
+
+  describe('determineMotorLevel with step-based implementation', () => {
+    it('returns correct motor level for normal side with VAC=No', () => {
+      const side = newNormalSide();
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('S3');
+    });
+
+    it('returns correct motor level for normal side with VAC=Yes', () => {
+      const side = newNormalSide();
+      const result = determineMotorLevel(side, 'Yes');
+      expect(result).toBe('INT');
+    });
+
+    it('returns correct motor level for normal side with VAC=NT', () => {
+      const side = newNormalSide();
+      const result = determineMotorLevel(side, 'NT');
+      expect(result).toBe('S3,INT');
+    });
+
+    it('returns C6 when C6 motor grade is 3', () => {
+      const side = newNormalSide();
+      side.motor.C6 = '3';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('C6');
+    });
+
+    it('returns C4 when C5 motor is 0', () => {
+      const side = newNormalSide();
+      side.motor.C5 = '0';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('C4');
+    });
+
+    it('returns C6 without * when motor is 3*', () => {
+      const side = newNormalSide();
+      side.motor.C6 = '3*';
+      const result = determineMotorLevel(side, 'No');
+      // Based on checkMotorLevel logic, '3*' returns level without * suffix
+      expect(result).toBe('C6');
+    });
+
+    it('handles sensory region impairment at C2', () => {
+      const side = newNormalSide();
+      side.lightTouch.C2 = '0';
+      side.pinPrick.C2 = '0';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('C1');
+    });
+
+    it('handles end of key muscles at T1 correctly', () => {
+      const side = newNormalSide();
+      side.motor.T1 = '3';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('T1');
+    });
+
+    it('handles end of key muscles at S1 correctly', () => {
+      const side = newNormalSide();
+      side.motor.S1 = '4';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('S1');
+    });
+
+    it('handles lumbar impairment correctly', () => {
+      const side = newNormalSide();
+      side.motor.L3 = '4';
+      const result = determineMotorLevel(side, 'No');
+      expect(result).toBe('L3');
+    });
+  });
 })
