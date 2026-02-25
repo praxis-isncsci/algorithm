@@ -958,6 +958,82 @@ describe('determineMotorLevel', () => {
         expect(step.next).toBeNull();
         expect(step.state.levels).toContain('INT*');
       });
+
+      describe('Edge case: S3 already in levels with VAC=No', () => {
+        it('adds Stop action when S3 already in levels with VAC=No', () => {
+          const side = newNormalSide();
+          const state = getInitialState(side, 'No');
+          state.levels = ['S3'];
+          state.currentIndex = 28; // S4_5
+
+          const step = checkLevel(state);
+
+          expect(step.next).toBeNull();
+          expect(step.state.levels).toEqual(['S3']);
+          expect(
+            step.actions.some(
+              (a) => a.key === 'motorLevelCheckLevelVACNoAction',
+            ),
+          ).toBe(true);
+          expect(
+            step.actions.some(
+              (a) => a.key === 'motorLevelCheckLevelStopAction',
+            ),
+          ).toBe(true);
+          const stopAction = step.actions.find(
+            (a) => a.key === 'motorLevelCheckLevelStopAction',
+          );
+          expect(stopAction?.params?.levelName).toBe('S3');
+        });
+
+        it('adds Stop action when S3* already in levels with VAC=No', () => {
+          const side = newNormalSide();
+          const state = getInitialState(side, 'No');
+          state.levels = ['S3*'];
+          state.variable = true;
+          state.currentIndex = 28; // S4_5
+
+          const step = checkLevel(state);
+
+          expect(step.next).toBeNull();
+          expect(step.state.levels).toEqual(['S3*']);
+          expect(
+            step.actions.some(
+              (a) => a.key === 'motorLevelCheckLevelVACNoAction',
+            ),
+          ).toBe(true);
+          expect(
+            step.actions.some(
+              (a) => a.key === 'motorLevelCheckLevelStopAction',
+            ),
+          ).toBe(true);
+          const stopAction = step.actions.find(
+            (a) => a.key === 'motorLevelCheckLevelStopAction',
+          );
+          expect(stopAction?.params?.levelName).toBe('S3*');
+        });
+
+        it('adds Stop action when multiple levels including S3 are present', () => {
+          const side = newNormalSide();
+          const state = getInitialState(side, 'No');
+          state.levels = ['L5', 'S1', 'S3'];
+          state.currentIndex = 28; // S4_5
+
+          const step = checkLevel(state);
+
+          expect(step.next).toBeNull();
+          expect(step.state.levels).toEqual(['L5', 'S1', 'S3']);
+          expect(
+            step.actions.some(
+              (a) => a.key === 'motorLevelCheckLevelStopAction',
+            ),
+          ).toBe(true);
+          const stopAction = step.actions.find(
+            (a) => a.key === 'motorLevelCheckLevelStopAction',
+          );
+          expect(stopAction?.params?.levelName).toBe('S3');
+        });
+      });
     });
   });
 
@@ -1099,6 +1175,63 @@ describe('determineMotorLevel', () => {
         }
       }
     });
+
+    describe('Edge case: S3 already in levels before S4_5 with VAC=No (fallback test)', () => {
+      it('generator includes Stop action when S3 pre-exists in state with VAC=No', () => {
+        // Manually create state with S3 already present (edge case scenario)
+        const side = newNormalSide();
+        const initialState = getInitialState(side, 'No');
+        initialState.levels = ['S3'];
+        initialState.currentIndex = 28; // S4_5
+
+        // Step directly at S4_5 with S3 already in levels
+        const step = checkLevel(initialState);
+
+        // Verify S3 is not duplicated
+        expect(step.state.levels).toEqual(['S3']);
+
+        // Verify Stop action exists (fallback logic)
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelStopAction',
+          ),
+        ).toBe(true);
+
+        // Verify VAC=No action exists
+        expect(
+          step.actions.some(
+            (a) => a.key === 'motorLevelCheckLevelVACNoAction',
+          ),
+        ).toBe(true);
+
+        const stopAction = step.actions.find(
+          (a) => a.key === 'motorLevelCheckLevelStopAction',
+        );
+        expect(stopAction?.params?.levelName).toBe('S3');
+      });
+
+      it('generator includes Stop action when S3* pre-exists in state with VAC=No', () => {
+        // Manually create state with S3* already present (edge case scenario)
+        const side = newNormalSide();
+        const initialState = getInitialState(side, 'No');
+        initialState.levels = ['S3*'];
+        initialState.variable = true;
+        initialState.currentIndex = 28; // S4_5
+
+        // Step directly at S4_5 with S3* already in levels
+        const step = checkLevel(initialState);
+
+        // Verify S3* is not duplicated
+        expect(step.state.levels).toEqual(['S3*']);
+
+        // Verify Stop action with correct levelName
+        const stopAction = step.actions.find(
+          (a) => a.key === 'motorLevelCheckLevelStopAction',
+        );
+        expect(stopAction).toBeDefined();
+        expect(stopAction?.params?.levelName).toBe('S3*');
+      });
+    });
   });
 
   describe('determineMotorLevel with step-based implementation', () => {
@@ -1169,6 +1302,49 @@ describe('determineMotorLevel', () => {
       side.motor.L3 = '4';
       const result = determineMotorLevel(side, 'No');
       expect(result).toBe('L3');
+    });
+
+    describe('Edge case: VAC=No adds S3 without duplication', () => {
+      it('returns S3 once when all sensory/motor normal with VAC=No', () => {
+        const side = newNormalSide();
+
+        const result = determineMotorLevel(side, 'No');
+
+        // Should return S3 exactly once (added by VAC=No logic)
+        expect(result).toBe('S3');
+        // Verify no comma (which would indicate duplication)
+        expect(result.split(',').length).toBe(1);
+      });
+
+      it('returns S3 once when algorithm reaches S4_5 and VAC=No', () => {
+        const side = newNormalSide();
+        // Ensure algorithm reaches S4_5
+        side.motor.S1 = '5';
+
+        const result = determineMotorLevel(side, 'No');
+
+        // Should return S3 exactly once
+        expect(result).toBe('S3');
+        // Verify S3 appears only once
+        const s3Count = result.split(',').filter((l) => l === 'S3' || l === 'S3*').length;
+        expect(s3Count).toBe(1);
+      });
+
+      it('does not add S3 when S3 already determined at earlier level', () => {
+        const side = newNormalSide();
+        // Create scenario where algorithm stops at S3 through sensory check
+        side.lightTouch.S3 = '1';
+        side.pinPrick.S3 = '1';
+        // Impair subsequent levels to ensure stop
+        propagateSensoryValueFrom(side, 'S4_5', '0');
+
+        const result = determineMotorLevel(side, 'No');
+
+        // Algorithm stops before reaching S4_5, so VAC logic never executes
+        // Result should contain no duplicates
+        expect(result).not.toContain('S3,S3');
+        expect(result).not.toContain('S3*,S3*');
+      });
     });
   });
 });

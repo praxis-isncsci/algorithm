@@ -1,4 +1,10 @@
-import { ExamSide, MotorLevel, MotorLevels, SensoryLevels, BinaryObservation } from '../../interfaces';
+import {
+  ExamSide,
+  MotorLevel,
+  MotorLevels,
+  SensoryLevels,
+  BinaryObservation,
+} from '../../interfaces';
 import { checkSensoryLevel } from './sensoryLevel';
 import { levelIsBetween, CheckLevelResult } from '../common';
 import { createStep, Step, StepHandler } from '../common/step';
@@ -22,26 +28,44 @@ export type MotorLevelStep = Step<MotorLevelState>;
 /*  Check Functions (Preserved)            */
 /* *************************************** */
 
-export const checkMotorLevel = (side: ExamSide, level: MotorLevel, nextLevel: MotorLevel, variable: boolean): CheckLevelResult => {
-  if (['0','1','2'].includes(side.motor[level])) {
+export const checkMotorLevel = (
+  side: ExamSide,
+  level: MotorLevel,
+  nextLevel: MotorLevel,
+  variable: boolean,
+): CheckLevelResult => {
+  if (['0', '1', '2'].includes(side.motor[level])) {
     throw new Error(`Invalid motor value at current level`);
   }
 
   const result: CheckLevelResult = { continue: false, variable };
 
-  if (!['0','1','2'].includes(side.motor[level])) {
-    if (!['0*','1*','2*','NT*','3','4','3*','4*'].includes(side.motor[level])) {
-      if (!['0','1','2'].includes(side.motor[nextLevel])) {
+  if (!['0', '1', '2'].includes(side.motor[level])) {
+    if (
+      !['0*', '1*', '2*', 'NT*', '3', '4', '3*', '4*'].includes(
+        side.motor[level],
+      )
+    ) {
+      if (!['0', '1', '2'].includes(side.motor[nextLevel])) {
         result.continue = true;
       }
     }
   }
 
-  if (!(['5','0**','1**','2**','3**','4**','NT**'].includes(side.motor[level]) && !['0','1','2','0*','1*','2*','NT','NT*'].includes(side.motor[nextLevel]))) {
-    if (
-      ['0*','1*','2*','NT*'].includes(side.motor[level]) || (
-        ['0**','1**','2**'].includes(side.motor[level]) && ['0*','1*','2*','NT','NT*'].includes(side.motor[nextLevel])
+  if (
+    !(
+      ['5', '0**', '1**', '2**', '3**', '4**', 'NT**'].includes(
+        side.motor[level],
+      ) &&
+      !['0', '1', '2', '0*', '1*', '2*', 'NT', 'NT*'].includes(
+        side.motor[nextLevel],
       )
+    )
+  ) {
+    if (
+      ['0*', '1*', '2*', 'NT*'].includes(side.motor[level]) ||
+      (['0**', '1**', '2**'].includes(side.motor[level]) &&
+        ['0*', '1*', '2*', 'NT', 'NT*'].includes(side.motor[nextLevel]))
     ) {
       result.level = level + '*';
     } else {
@@ -49,32 +73,49 @@ export const checkMotorLevel = (side: ExamSide, level: MotorLevel, nextLevel: Mo
     }
   }
 
-  if (!['5','3','4','3*','4*','NT'].includes(side.motor[level])) {
-    if (['0**','1**','2**','3**','4**','NT**'].includes(side.motor[level])) {
-      if (!['0','1','2'].includes(side.motor[nextLevel])) {
+  if (!['5', '3', '4', '3*', '4*', 'NT'].includes(side.motor[level])) {
+    if (
+      ['0**', '1**', '2**', '3**', '4**', 'NT**'].includes(side.motor[level])
+    ) {
+      if (!['0', '1', '2'].includes(side.motor[nextLevel])) {
         result.variable = true;
       }
     } else {
       result.variable = true;
     }
-  } else if (side.motor[level] === '5' && ['0**','1**','2**'].includes(side.motor[nextLevel])) {
+  } else if (
+    side.motor[level] === '5' &&
+    ['0**', '1**', '2**'].includes(side.motor[nextLevel])
+  ) {
     result.variable = true;
   }
 
   return result;
-}
+};
 
-export const checkMotorLevelBeforeStartOfKeyMuscles = (side: ExamSide, level: 'C4' | 'L1', nextLevel: MotorLevel, variable: boolean): CheckLevelResult => {
+export const checkMotorLevelBeforeStartOfKeyMuscles = (
+  side: ExamSide,
+  level: 'C4' | 'L1',
+  nextLevel: MotorLevel,
+  variable: boolean,
+): CheckLevelResult => {
   return {
-    continue: !['0','1','2'].includes(side.motor[nextLevel]),
-    level: ['0','1','2','0*','1*','2*','NT','NT*'].includes(side.motor[nextLevel]) ? level + (variable ? '*' : ''): undefined,
-    variable: variable || ['0**','1**','2**'].includes(side.motor[nextLevel]),
+    continue: !['0', '1', '2'].includes(side.motor[nextLevel]),
+    level: ['0', '1', '2', '0*', '1*', '2*', 'NT', 'NT*'].includes(
+      side.motor[nextLevel],
+    )
+      ? level + (variable ? '*' : '')
+      : undefined,
+    variable: variable || ['0**', '1**', '2**'].includes(side.motor[nextLevel]),
   };
-}
+};
 
-const checkMotorLevelUsingSensoryValues = (side: ExamSide, firstMotorLevelOfMotorBlock: 'C5' | 'L2'): CheckLevelResult => {
+const checkMotorLevelUsingSensoryValues = (
+  side: ExamSide,
+  firstMotorLevelOfMotorBlock: 'C5' | 'L2',
+): CheckLevelResult => {
   const startIndex = SensoryLevels.indexOf(firstMotorLevelOfMotorBlock) - 1;
-  const result: CheckLevelResult = {continue: true, variable: false};
+  const result: CheckLevelResult = { continue: true, variable: false };
   for (let i = startIndex; i <= startIndex + 5; i++) {
     const level = SensoryLevels[i];
     const nextLevel = SensoryLevels[i + 1];
@@ -91,24 +132,39 @@ const checkMotorLevelUsingSensoryValues = (side: ExamSide, firstMotorLevelOfMoto
     }
   }
   return result;
-}
+};
 
-export const checkWithSensoryCheckLevelResult = (side: ExamSide, level: 'T1' | 'S1', variable: boolean, sensoryCheckLevelResult: CheckLevelResult): CheckLevelResult => {
-  const result: CheckLevelResult = {continue:true, variable};
+export const checkWithSensoryCheckLevelResult = (
+  side: ExamSide,
+  level: 'T1' | 'S1',
+  variable: boolean,
+  sensoryCheckLevelResult: CheckLevelResult,
+): CheckLevelResult => {
+  const result: CheckLevelResult = { continue: true, variable };
 
   if (
-    (['3','4','0*','1*','2*','3*','4*','NT*'].includes(side.motor[level]) || !sensoryCheckLevelResult.continue)
+    ['3', '4', '0*', '1*', '2*', '3*', '4*', 'NT*'].includes(
+      side.motor[level],
+    ) ||
+    !sensoryCheckLevelResult.continue
   ) {
     result.continue = false;
   }
 
-  if (side.motor[level] === 'NT' || !(['5','0**','1**','2**','3**','4**','NT**'].includes(side.motor[level]) && sensoryCheckLevelResult.continue && !sensoryCheckLevelResult.level)) {
+  if (
+    side.motor[level] === 'NT' ||
+    !(
+      ['5', '0**', '1**', '2**', '3**', '4**', 'NT**'].includes(
+        side.motor[level],
+      ) &&
+      sensoryCheckLevelResult.continue &&
+      !sensoryCheckLevelResult.level
+    )
+  ) {
     if (
-      ['0*','1*','2*','NT*'].includes(side.motor[level]) ||
-      (
-        ['0**','1**','2**'].includes(side.motor[level]) &&
-        (sensoryCheckLevelResult.level || !sensoryCheckLevelResult.continue)
-      )
+      ['0*', '1*', '2*', 'NT*'].includes(side.motor[level]) ||
+      (['0**', '1**', '2**'].includes(side.motor[level]) &&
+        (sensoryCheckLevelResult.level || !sensoryCheckLevelResult.continue))
     ) {
       result.level = level + '*';
     } else {
@@ -117,29 +173,44 @@ export const checkWithSensoryCheckLevelResult = (side: ExamSide, level: 'T1' | '
   }
 
   if (
-    ['0*','1*','2*','NT*','0**','1**','2**'].includes(side.motor[level]) || (
-      ['3**','4**','NT**'].includes(side.motor[level]) && sensoryCheckLevelResult.continue
-    ) || (
-      ['5','NT'].includes(side.motor[level]) &&
-      (sensoryCheckLevelResult.continue && sensoryCheckLevelResult.variable && !sensoryCheckLevelResult.level)
-    )
+    ['0*', '1*', '2*', 'NT*', '0**', '1**', '2**'].includes(
+      side.motor[level],
+    ) ||
+    (['3**', '4**', 'NT**'].includes(side.motor[level]) &&
+      sensoryCheckLevelResult.continue) ||
+    (['5', 'NT'].includes(side.motor[level]) &&
+      sensoryCheckLevelResult.continue &&
+      sensoryCheckLevelResult.variable &&
+      !sensoryCheckLevelResult.level)
   ) {
     result.variable = true;
   }
 
   return result;
-}
+};
 
-export const checkMotorLevelAtEndOfKeyMuscles = (side: ExamSide, level: 'T1' | 'S1', variable: boolean): CheckLevelResult => {
-  if (['0','1','2'].includes(side.motor[level])) {
+export const checkMotorLevelAtEndOfKeyMuscles = (
+  side: ExamSide,
+  level: 'T1' | 'S1',
+  variable: boolean,
+): CheckLevelResult => {
+  if (['0', '1', '2'].includes(side.motor[level])) {
     throw new Error(`Invalid motor value at current level`);
   }
 
   const firstMotorLevelOfMotorBlock = level === 'T1' ? 'C5' : 'L2';
-  const sensoryCheckLevelResult = checkMotorLevelUsingSensoryValues(side, firstMotorLevelOfMotorBlock);
+  const sensoryCheckLevelResult = checkMotorLevelUsingSensoryValues(
+    side,
+    firstMotorLevelOfMotorBlock,
+  );
 
-  return checkWithSensoryCheckLevelResult(side, level, variable, sensoryCheckLevelResult);
-}
+  return checkWithSensoryCheckLevelResult(
+    side,
+    level,
+    variable,
+    sensoryCheckLevelResult,
+  );
+};
 
 /* *************************************** */
 /*  Step Handler Functions                 */
@@ -181,35 +252,64 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
   const i = state.currentIndex;
 
   let result: CheckLevelResult;
-  let checkType: 'sensory' | 'beforeKeyMuscles' | 'keyMotor' | 'endOfKeyMuscles' | 'vac';
+  let checkType:
+    | 'sensory'
+    | 'beforeKeyMuscles'
+    | 'keyMotor'
+    | 'endOfKeyMuscles'
+    | 'vac';
 
   // Dispatch by level category
-  if (levelIsBetween(i, 'C1', 'C3') || levelIsBetween(i, 'T2', 'T12') || levelIsBetween(i, 'S2', 'S3')) {
+  if (
+    levelIsBetween(i, 'C1', 'C3') ||
+    levelIsBetween(i, 'T2', 'T12') ||
+    levelIsBetween(i, 'S2', 'S3')
+  ) {
     // Sensory regions
     checkType = 'sensory';
     result = checkSensoryLevel(state.side, level, nextLevel, state.variable);
   } else if (level === 'C4') {
     // Before cervical key muscles
     checkType = 'beforeKeyMuscles';
-    result = checkMotorLevelBeforeStartOfKeyMuscles(state.side, 'C4', 'C5', state.variable);
+    result = checkMotorLevelBeforeStartOfKeyMuscles(
+      state.side,
+      'C4',
+      'C5',
+      state.variable,
+    );
   } else if (level === 'L1') {
     // Before lumbar key muscles
     checkType = 'beforeKeyMuscles';
-    result = checkMotorLevelBeforeStartOfKeyMuscles(state.side, 'L1', 'L2', state.variable);
+    result = checkMotorLevelBeforeStartOfKeyMuscles(
+      state.side,
+      'L1',
+      'L2',
+      state.variable,
+    );
   } else if (levelIsBetween(i, 'C5', 'C8')) {
     // Cervical key motor region
     checkType = 'keyMotor';
     const index = i - 4;
     const motorLevel = MotorLevels[index];
     const motorNextLevel = MotorLevels[index + 1];
-    result = checkMotorLevel(state.side, motorLevel, motorNextLevel, state.variable);
+    result = checkMotorLevel(
+      state.side,
+      motorLevel,
+      motorNextLevel,
+      state.variable,
+    );
   } else if (levelIsBetween(i, 'L2', 'L5')) {
     // Lumbar key motor region
     checkType = 'keyMotor';
     const index = i - 16;
     const motorLevel = MotorLevels[index];
     const motorNextLevel = MotorLevels[index + 1];
-    result = checkMotorLevel(state.side, motorLevel, motorNextLevel, state.variable);
+    result = checkMotorLevel(
+      state.side,
+      motorLevel,
+      motorNextLevel,
+      state.variable,
+    );
   } else if (level === 'T1') {
     // End of cervical key muscles
     checkType = 'endOfKeyMuscles';
@@ -231,7 +331,7 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
         result = {
           continue: false,
           level: 'S3' + (state.variable ? '*' : ''),
-          variable: state.variable
+          variable: state.variable,
         };
       }
     } else if (state.vac === 'NT') {
@@ -240,7 +340,7 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
         result = {
           continue: false,
           level: 'INT' + (state.variable ? '*' : ''),
-          variable: state.variable
+          variable: state.variable,
         };
       } else {
         // Add S3 first, then INT in the result
@@ -248,7 +348,7 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
         result = {
           continue: false,
           level: 'INT' + (state.variable ? '*' : ''),
-          variable: state.variable
+          variable: state.variable,
         };
         // Special handling: need to update levels in state before adding INT
         const variable = state.variable || result.variable;
@@ -278,7 +378,7 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
       result = {
         continue: false,
         level: 'INT' + (state.variable ? '*' : ''),
-        variable: state.variable
+        variable: state.variable,
       };
     }
   }
@@ -287,10 +387,14 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
   const variable = state.variable || result.variable;
 
   // Build new levels array
-  const newLevels = result.level ? [...state.levels, result.level] : [...state.levels];
+  const newLevels = result.level
+    ? [...state.levels, result.level]
+    : [...state.levels];
 
   // Determine next step
-  const next: MotorLevelStepHandler | null = result.continue ? checkLevel : null;
+  const next: MotorLevelStepHandler | null = result.continue
+    ? checkLevel
+    : null;
 
   // Build description and actions
   const description = {
@@ -308,7 +412,9 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
       params: { nextLevel: level === 'C4' ? 'C5' : 'L2' },
     });
   } else if (checkType === 'keyMotor') {
-    const motorNextLevel = levelIsBetween(i, 'C5', 'C8') ? MotorLevels[i - 3] : MotorLevels[i - 15];
+    const motorNextLevel = levelIsBetween(i, 'C5', 'C8')
+      ? MotorLevels[i - 3]
+      : MotorLevels[i - 15];
     actions.push({
       key: 'motorLevelCheckLevelKeyMotorAction' as const,
       params: {
@@ -338,6 +444,16 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
       key: 'motorLevelCheckLevelStopAction' as const,
       params: { levelName: result.level },
     });
+  } else {
+    // Fallback: result.continue is false but no explicit level was provided.
+    // Use the last determined level (if any) to ensure a Stop action is added.
+    const fallbackLevel = newLevels[newLevels.length - 1];
+    if (fallbackLevel) {
+      actions.push({
+        key: 'motorLevelCheckLevelStopAction' as const,
+        params: { levelName: fallbackLevel },
+      });
+    }
   }
 
   return createStep(
@@ -347,7 +463,9 @@ export function checkLevel(state: MotorLevelState): MotorLevelStep {
     {
       levels: newLevels,
       variable,
-      currentIndex: result.continue ? state.currentIndex + 1 : state.currentIndex,
+      currentIndex: result.continue
+        ? state.currentIndex + 1
+        : state.currentIndex,
     },
     next,
   );
@@ -377,7 +495,10 @@ export function getInitialState(
  * Determine motor level for one side
  * Returns comma-separated string of levels (e.g., "C5", "T3*", "S3,INT")
  */
-export function determineMotorLevel(side: ExamSide, vac: BinaryObservation): string {
+export function determineMotorLevel(
+  side: ExamSide,
+  vac: BinaryObservation,
+): string {
   const initialState = getInitialState(side, vac);
   let step = initializeMotorLevelIteration(initialState);
 

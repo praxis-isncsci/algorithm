@@ -2,7 +2,7 @@
 
 **Author:** ISNCSCI Architect Agent  
 **Date:** 2025-02-19  
-**Status:** Architecture proposal for refactor
+**Status:** Implemented
 
 ---
 
@@ -31,14 +31,14 @@ Each check returns `CheckLevelResult { continue, level?, variable }`. The `varia
 
 ### Key inputs and final outputs
 
-| Input  | Type                  | Description                                      |
-| ------ | --------------------- | ------------------------------------------------ |
-| `side` | `ExamSide`            | Exam data (lightTouch, pinPrick, motor) for one side |
-| `vac`  | `BinaryObservation`   | Voluntary Anal Contraction: 'No', 'NT', or 'Yes' |
+| Input  | Type                | Description                                          |
+| ------ | ------------------- | ---------------------------------------------------- |
+| `side` | `ExamSide`          | Exam data (lightTouch, pinPrick, motor) for one side |
+| `vac`  | `BinaryObservation` | Voluntary Anal Contraction: 'No', 'NT', or 'Yes'     |
 
-| Output       | Type     | Description                                                          |
-| ------------ | -------- | -------------------------------------------------------------------- |
-| Motor level  | `string` | Comma-separated levels (e.g. `"C5"`, `"T3*"`, `"S3,INT"`, `"INT*"`) |
+| Output      | Type     | Description                                                         |
+| ----------- | -------- | ------------------------------------------------------------------- |
+| Motor level | `string` | Comma-separated levels (e.g. `"C5"`, `"T3*"`, `"S3,INT"`, `"INT*"`) |
 
 ---
 
@@ -72,13 +72,13 @@ Each check returns `CheckLevelResult { continue, level?, variable }`. The `varia
 
 ### Step 2: checkLevel
 
-| Field           | Description                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **name**        | `checkLevel`                                                                                                                      |
-| **purpose**     | For the current level, dispatch to the appropriate check; add level if indicated; update variable; continue or stop.              |
-| **inputs**      | `state.side`, `state.vac`, `state.levels`, `state.variable`, `state.currentIndex`                                                 |
-| **outputs**     | `state.levels`, `state.variable`, `state.currentIndex`, `state.next`                                                             |
-| **explanation** | "Check motor/sensory function at {{levelName}}." (Params vary by check type.)                                                     |
+| Field           | Description                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **name**        | `checkLevel`                                                                                                         |
+| **purpose**     | For the current level, dispatch to the appropriate check; add level if indicated; update variable; continue or stop. |
+| **inputs**      | `state.side`, `state.vac`, `state.levels`, `state.variable`, `state.currentIndex`                                    |
+| **outputs**     | `state.levels`, `state.variable`, `state.currentIndex`, `state.next`                                                 |
+| **explanation** | "Check motor/sensory function at {{levelName}}." (Params vary by check type.)                                        |
 
 **Logic:**
 
@@ -87,26 +87,26 @@ Each check returns `CheckLevelResult { continue, level?, variable }`. The `varia
 
 **Dispatch by level category:**
 
-| Condition                                      | Check used                                   | Notes                                                                 |
-| ---------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------- |
-| C1–C3, T2–T12, S2–S3                           | `checkSensoryLevel(side, level, nextLevel, variable)` | Sensory regions; no key muscles.                             |
-| C4                                             | `checkMotorLevelBeforeStartOfKeyMuscles(side, 'C4', 'C5', variable)` | Before cervical key muscles.                                |
-| L1                                             | `checkMotorLevelBeforeStartOfKeyMuscles(side, 'L1', 'L2', variable)` | Before lumbar key muscles.                                    |
-| C5–C8                                          | `checkMotorLevel(side, MotorLevels[i-4], MotorLevels[i-3], variable)` | Key motor; map SensoryLevel index to MotorLevels.           |
-| L2–L5                                          | `checkMotorLevel(side, MotorLevels[i-16], MotorLevels[i-15], variable)` | Key motor; map SensoryLevel index to MotorLevels.            |
-| T1                                             | `checkMotorLevelAtEndOfKeyMuscles(side, 'T1', variable)`             | End of cervical key muscles; uses sensory C5–T1.             |
-| S1                                             | `checkMotorLevelAtEndOfKeyMuscles(side, 'S1', variable)`              | End of lumbar key muscles; uses sensory L2–S1.               |
-| S4_5                                           | VAC handling (see below)                      | Past S1; add S3 and/or INT based on VAC.                     |
+| Condition            | Check used                                                              | Notes                                             |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| C1–C3, T2–T12, S2–S3 | `checkSensoryLevel(side, level, nextLevel, variable)`                   | Sensory regions; no key muscles.                  |
+| C4                   | `checkMotorLevelBeforeStartOfKeyMuscles(side, 'C4', 'C5', variable)`    | Before cervical key muscles.                      |
+| L1                   | `checkMotorLevelBeforeStartOfKeyMuscles(side, 'L1', 'L2', variable)`    | Before lumbar key muscles.                        |
+| C5–C8                | `checkMotorLevel(side, MotorLevels[i-4], MotorLevels[i-3], variable)`   | Key motor; map SensoryLevel index to MotorLevels. |
+| L2–L5                | `checkMotorLevel(side, MotorLevels[i-16], MotorLevels[i-15], variable)` | Key motor; map SensoryLevel index to MotorLevels. |
+| T1                   | `checkMotorLevelAtEndOfKeyMuscles(side, 'T1', variable)`                | End of cervical key muscles; uses sensory C5–T1.  |
+| S1                   | `checkMotorLevelAtEndOfKeyMuscles(side, 'S1', variable)`                | End of lumbar key muscles; uses sensory L2–S1.    |
+| S4_5                 | VAC handling (see below)                                                | Past S1; add S3 and/or INT based on VAC.          |
 
 **VAC handling (when level is S4_5):**
 
-| VAC   | Condition              | Result                                                                 |
-| ----- | ---------------------- | ---------------------------------------------------------------------- |
-| No    | S3 already in levels   | `{ continue: false }` — stop, do not add level                         |
-| No    | S3 not in levels      | `{ continue: false, level: 'S3' + (variable ? '*' : ''), variable }`    |
-| NT    | S3 already in levels   | `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }`  |
-| NT    | S3 not in levels      | Push `'S3' + (variable ? '*' : '')` to levels; `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }` |
-| Yes   | —                      | `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }`  |
+| VAC | Condition            | Result                                                                                                               |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| No  | S3 already in levels | `{ continue: false }` — stop, do not add level                                                                       |
+| No  | S3 not in levels     | `{ continue: false, level: 'S3' + (variable ? '*' : ''), variable }`                                                 |
+| NT  | S3 already in levels | `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }`                                                |
+| NT  | S3 not in levels     | Push `'S3' + (variable ? '*' : '')` to levels; `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }` |
+| Yes | —                    | `{ continue: false, level: 'INT' + (variable ? '*' : ''), variable }`                                                |
 
 **After any check:**
 
@@ -130,12 +130,12 @@ Used for C1–C3, T2–T12, S2–S3. Returns `CheckLevelResult`. See `sensoryLev
 
 `checkMotorLevelBeforeStartOfKeyMuscles(side, level, nextLevel, variable)` where level is 'C4' or 'L1', nextLevel is 'C5' or 'L2'.
 
-| Condition                               | Result                                                                 |
-| --------------------------------------- | ---------------------------------------------------------------------- |
-| nextLevel motor in ['0','1','2']        | `{ continue: false, level: level + (variable ? '*' : ''), variable }`  |
-| nextLevel motor in ['0*','1*','2*','NT','NT*'] | `{ continue: true, level: level + (variable ? '*' : ''), variable }`   |
-| nextLevel motor in ['0**','1**','2**']  | `{ continue: true, variable: true }`                                  |
-| Else                                    | `{ continue: true, variable }`                                        |
+| Condition                                      | Result                                                                |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| nextLevel motor in ['0','1','2']               | `{ continue: false, level: level + (variable ? '*' : ''), variable }` |
+| nextLevel motor in ['0*','1*','2*','NT','NT*'] | `{ continue: true, level: level + (variable ? '*' : ''), variable }`  |
+| nextLevel motor in ['0**','1**','2**']         | `{ continue: true, variable: true }`                                  |
+| Else                                           | `{ continue: true, variable }`                                        |
 
 ### checkMotorLevel
 
@@ -174,9 +174,7 @@ export type MotorLevelStepHandler = StepHandler<MotorLevelState>;
 export type MotorLevelStep = Step<MotorLevelState>;
 
 // Step 1: Entry point
-function initializeMotorLevelIteration(
-  state: MotorLevelState,
-): MotorLevelStep;
+function initializeMotorLevelIteration(state: MotorLevelState): MotorLevelStep;
 
 // Step 2: Iteration (may chain to itself or stop)
 function checkLevel(state: MotorLevelState): MotorLevelStep;
@@ -240,15 +238,15 @@ src/classification/neurologicalLevels/
 
 ### Shared vs module-specific
 
-| Item                    | Location                     | Rationale                              |
-| ----------------------- | ---------------------------- | -------------------------------------- |
-| `Step` type             | `common/step.ts`             | Reusable                               |
-| `StepHandler<S>`        | `common/step.ts`             | Generic handler                        |
-| `createStep`            | `common/step.ts`             | Shared helper                          |
-| `CheckLevelResult`      | `common.ts`                  | Already shared                         |
-| `checkSensoryLevel`     | `sensoryLevel.ts`            | Imported for sensory regions           |
-| `levelIsBetween`        | `common.ts`                  | Helper for dispatch logic              |
-| `MotorLevelState`       | `motorLevel.ts`              | Motor-level-specific state             |
+| Item                | Location          | Rationale                    |
+| ------------------- | ----------------- | ---------------------------- |
+| `Step` type         | `common/step.ts`  | Reusable                     |
+| `StepHandler<S>`    | `common/step.ts`  | Generic handler              |
+| `createStep`        | `common/step.ts`  | Shared helper                |
+| `CheckLevelResult`  | `common.ts`       | Already shared               |
+| `checkSensoryLevel` | `sensoryLevel.ts` | Imported for sensory regions |
+| `levelIsBetween`    | `common.ts`       | Helper for dispatch logic    |
+| `MotorLevelState`   | `motorLevel.ts`   | Motor-level-specific state   |
 
 ---
 
